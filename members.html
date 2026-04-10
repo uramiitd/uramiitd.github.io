@@ -322,15 +322,49 @@
     }
 
     .member-visual {
-      min-height: 280px;
-      border-radius: 22px;
-      padding: 18px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent),
-        linear-gradient(145deg, #1c5660 0%, #10252b 100%);
-      display: flex;
-      align-items: flex-end;
+      flex: 0 0 260px; /* This keeps the image column a consistent width */
+      min-height: auto; 
+      background: none; 
+      padding: 0;
+      display: block;
     }
+
+    /* 2. Create a clean wrapper for the photo */
+  .image-wrapper {
+    width: 100%;
+    aspect-ratio: 4 / 5; /* Creates a consistent portrait shape */
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: #e5e7eb; /* Fallback color */
+    border: 1px solid var(--line);
+  }
+  
+  /* 3. The actual image styling */
+  .member-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* This makes the photo fill the box without stretching */
+    display: block;
+  }
+  
+  /* 4. Ensure the row layout is clean */
+  .member-row {
+    display: flex; /* Using flex is easier for image + text alignment */
+    gap: 32px;
+    padding: 30px;
+    align-items: flex-start;
+  }
+
+/* 5. Mobile adjustment */
+@media (max-width: 1024px) {
+  .member-row {
+    flex-direction: column;
+  }
+  .member-visual {
+    width: 100%;
+    max-width: 300px; /* Prevents image from getting too big on mobile */
+  }
+}
 
     .member-visual .image-placeholder {
       min-height: 240px;
