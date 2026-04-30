@@ -17,7 +17,7 @@
   /* CENTER THE CONTENT */
   max-width: 100%;
   
-  padding: 6px 10px; /* Adds space on the left/right edges so it's not touching screen sides */
+  padding: 14px 10px; /* Adds space on the left/right edges so it's not touching screen sides */
   
   /* Remove these if you want it to look like a flat bar instead of a bubble */
   border-radius: 0; 
@@ -59,6 +59,7 @@
   border-radius: 999px;
   font-size: 0.85rem;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .nav a.active,
