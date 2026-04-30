@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css">
   <style>
     :root {
       --surface: rgba(255, 255, 255, 0.84);
@@ -49,64 +50,6 @@
       padding: 24px 0 70px;
     }
 
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      margin-bottom: 24px;
-      backdrop-filter: blur(18px);
-    }
-
-    .header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      padding: 18px 22px;
-      background: var(--surface);
-      border: 1px solid rgba(255, 255, 255, 0.72);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .brand {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 230px;
-    }
-
-    .brand-kicker {
-      margin: 0;
-      font-size: 0.76rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--accent);
-      font-weight: 800;
-    }
-
-    .brand-name {
-      margin: 0;
-      font-family: "Playfair Display", serif;
-      font-size: clamp(1.5rem, 2vw, 2rem);
-      line-height: 1;
-    }
-
-    .nav {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .nav a {
-      padding: 10px 14px;
-      border-radius: 999px;
-      font-size: 0.92rem;
-      color: var(--muted);
-      white-space: nowrap;
-      transition: 0.24s ease;
-    }
 
     .nav a:hover,
     .nav a:focus-visible,
@@ -408,57 +351,12 @@
       }
     }
 
-    @media (max-width: 760px) {
-      .page-shell {
-        width: min(100vw - 24px, 100%);
-        padding-top: 14px;
-      }
 
-      .header-bar,
-      .hero-copy,
-      .section-shell,
-      .sponsor-card,
-      .contact-band {
-        padding: 22px;
-      }
-
-      .nav {
-        justify-content: flex-start;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .hero-media {
-        min-height: 420px;
-        padding: 18px;
-      }
-
-      .image-placeholder {
-        min-height: 380px;
-      }
-    }
   </style>
 </head>
 <body>
+  <div id="header-placeholder"></div>
   <div class="page-shell">
-    <header class="site-header">
-      <div class="header-bar">
-        <div class="brand">
-          <p class="brand-kicker">IIT Delhi Research Group</p>
-          <p class="brand-name">URAM-IITD</p>
-        </div>
-        <nav class="nav" aria-label="Primary navigation">
-          <a href="index.html">Home</a>
-          <a href="projects.html">Projects</a>
-          <a href="teaching.html">Teaching</a>
-          <a href="publications.html">Publications</a>
-          <a href="members.html">Members</a>
-          <a href="collabrations.html">Collaborations</a>
-          <a href="current-openings.html">Current Openings</a>
-          <a href="contact.html">Contact</a>
-        </nav>
-      </div>
-    </header>
 
     <main>
       <section class="hero">
@@ -609,10 +507,6 @@
     </main>
   </div>
 
-  <script>
-function toggleMenu() {
-  document.getElementById("navMenu").classList.toggle("show");
-}
-</script>
+<script src="components.js"></script>
 </body>
 </html>
