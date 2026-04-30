@@ -92,20 +92,17 @@
 
   .nav {
     position: absolute;
-    top: 100%; /* Positions exactly at the bottom of the header */
-    right: 0;
-    width: 100%; /* Makes the dropdown span the full width of the phone */
+    top: 70px;
+    right: 20px;
     background: var(--surface-strong);
     flex-direction: column;
-    padding: 20px;
-    border-bottom: 1px solid var(--line);
+    padding: 14px;
+    border-radius: 16px;
     box-shadow: var(--shadow);
-    display: none; /* Hidden by default */
+    display: none;
   }
 
-  /* Ensure this class name matches your JavaScript toggle */
-  .nav.active { 
+  .nav.show {
     display: flex;
   }
-}
 /* ===== END UNIFIED HEADER CSS ===== */
