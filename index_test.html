@@ -3,36 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="google-site-verification" content="Ib5AKd1KGT3CSqcD7YxPKdD88Stz6O-n7Hj-J1yIT0g" />
-  <title>URAM-IITD | Home</title>
+  <title>URAM-IITD | Projects</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css">
   <style>
     :root {
-      --bg: #f3efe8;
-      --surface: rgba(255, 255, 255, 0.72);
-      --surface-strong: rgba(255, 255, 255, 0.88);
-      --ink: #162126;
-      --muted: #5a6a70;
+      --surface: rgba(255, 255, 255, 0.84);
+      --surface-strong: rgba(255, 255, 255, 0.92);
+      --ink: #152028;
+      --muted: #56656e;
       --accent: #0e646d;
-      --accent-deep: #0a4750;
+      --accent-deep: #0a4b53;
       --highlight: #db8a3d;
-      --line: rgba(22, 33, 38, 0.12);
-      --shadow: 0 22px 80px rgba(22, 33, 38, 0.12);
-      --radius-xl: 32px;
+      --line: rgba(21, 32, 40, 0.12);
+      --shadow: 0 22px 80px rgba(21, 32, 40, 0.12);
+      --radius-xl: 34px;
       --radius-lg: 24px;
-      --radius-md: 18px;
-      --container: min(1180px, calc(100vw - 40px));
+      --container: min(1200px, calc(100vw - 40px));
     }
 
     * {
       box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
     }
 
     body {
@@ -40,33 +33,35 @@
       font-family: "Manrope", sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at top left, rgba(219, 138, 61, 0.18), transparent 28%),
-        radial-gradient(circle at 85% 12%, rgba(14, 100, 109, 0.16), transparent 30%),
-        linear-gradient(180deg, #f8f5ef 0%, #f2ede5 100%);
+        radial-gradient(circle at 14% 10%, rgba(219, 138, 61, 0.15), transparent 24%),
+        radial-gradient(circle at 88% 14%, rgba(14, 100, 109, 0.16), transparent 30%),
+        linear-gradient(180deg, #f8f4ec 0%, #f1ebe2 100%);
       min-height: 100vh;
     }
 
     a {
-      color: inherit;
       text-decoration: none;
-    }
-
-    img {
-      max-width: 100%;
-      display: block;
+      color: inherit;
     }
 
     .page-shell {
       width: var(--container);
       margin: 0 auto;
-      padding: 24px 0 64px;
+      padding: 24px 0 70px;
     }
 
 
+    .nav a:hover,
+    .nav a:focus-visible,
+    .nav a.active {
+      background: rgba(14, 100, 109, 0.1);
+      color: var(--accent-deep);
+      outline: none;
+    }
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(320px, 0.95fr) minmax(340px, 1.15fr);
+      grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.08fr);
       gap: 28px;
       align-items: stretch;
       margin-bottom: 28px;
@@ -74,62 +69,49 @@
 
     .hero-media,
     .hero-copy,
-    .content-card,
-    .leader-card,
-    .team-card {
+    .section-shell,
+    .sponsor-card,
+    .contact-band {
       background: var(--surface-strong);
-      border: 1px solid rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.84);
       box-shadow: var(--shadow);
     }
 
     .hero-media {
       position: relative;
-      min-height: 560px;
       border-radius: var(--radius-xl);
+      min-height: 560px;
       overflow: hidden;
       padding: 24px;
       display: flex;
       align-items: flex-end;
       background:
-        linear-gradient(160deg, rgba(14, 100, 109, 0.9), rgba(11, 51, 56, 0.86)),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
-    }
-
-    .hero-media::before,
-    .hero-media::after {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(6px);
+        linear-gradient(154deg, rgba(14, 100, 109, 0.92), rgba(10, 52, 58, 0.9)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent);
     }
 
     .hero-media::before {
-      width: 240px;
-      height: 240px;
-      top: -40px;
-      right: -30px;
+      content: "";
+      position: absolute;
+      width: 230px;
+      height: 230px;
+      top: -36px;
+      right: -24px;
+      border-radius: 50%;
       background: rgba(219, 138, 61, 0.34);
-    }
-
-    .hero-media::after {
-      width: 180px;
-      height: 180px;
-      bottom: 52px;
-      left: -24px;
-      background: rgba(255, 255, 255, 0.1);
+      filter: blur(4px);
     }
 
     .image-placeholder {
       position: relative;
       z-index: 1;
       width: 100%;
-      height: 100%;
       min-height: 500px;
       border-radius: 28px;
-      border: 1.5px dashed rgba(255, 255, 255, 0.5);
+      border: 1.5px dashed rgba(255, 255, 255, 0.56);
       background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.16), transparent 24%);
+        linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.18), transparent 24%);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -137,11 +119,14 @@
     }
 
     .image-tag {
-      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       padding: 8px 12px;
       border-radius: 999px;
+      width: max-content;
       background: rgba(255, 255, 255, 0.12);
-      color: #f7f5f0;
+      color: #f4f3ef;
       font-size: 0.78rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -149,18 +134,18 @@
     }
 
     .image-title {
-      max-width: 220px;
+      margin: 0;
+      max-width: 240px;
       color: #ffffff;
       font-family: "Playfair Display", serif;
-      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
       line-height: 1.05;
-      margin: 0;
     }
 
     .image-note {
-      max-width: 260px;
       margin: 0;
-      color: rgba(255, 255, 255, 0.84);
+      max-width: 280px;
+      color: rgba(255, 255, 255, 0.85);
       line-height: 1.6;
       font-size: 0.96rem;
     }
@@ -171,87 +156,45 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      position: relative;
-      overflow: hidden;
     }
 
-    .eyebrow {
-      margin: 0 0 14px;
+    .eyebrow,
+    .section-label {
+      margin: 0 0 12px;
       color: var(--accent);
-      font-size: 0.84rem;
-      font-weight: 800;
-      letter-spacing: 0.18em;
       text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.82rem;
+      font-weight: 800;
     }
 
-    .hero h1 {
+    h1 {
       margin: 0 0 18px;
       font-family: "Playfair Display", serif;
-      font-size: clamp(2.8rem, 6vw, 5.1rem);
+      font-size: clamp(2.6rem, 5.8vw, 4.8rem);
       line-height: 0.95;
       letter-spacing: -0.04em;
     }
 
-    .hero-intro {
-      font-size: 1.08rem;
-      line-height: 1.8;
-      color: var(--muted);
+    .hero-copy p {
       margin: 0 0 18px;
-      max-width: 62ch;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      margin: 16px 0 28px;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      min-height: 50px;
-      padding: 0 22px;
-      border-radius: 999px;
-      font-weight: 700;
-      transition: transform 0.25s ease, background 0.25s ease, color 0.25s ease;
-    }
-
-    .button:hover,
-    .button:focus-visible {
-      transform: translateY(-2px);
-      outline: none;
-    }
-
-    .button-primary {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .button-primary:hover,
-    .button-primary:focus-visible {
-      background: var(--accent-deep);
-    }
-
-    .button-secondary {
-      background: rgba(14, 100, 109, 0.08);
-      color: var(--accent-deep);
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.8;
     }
 
     .hero-points {
+      margin: 8px 0 0;
+      padding: 0;
+      list-style: none;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
     }
 
     .hero-points li {
-      padding-top: 14px;
       border-top: 1px solid var(--line);
+      padding-top: 14px;
     }
 
     .point-label {
@@ -267,188 +210,108 @@
     .point-text {
       display: block;
       color: var(--ink);
-      font-size: 0.95rem;
       line-height: 1.6;
+      font-size: 0.95rem;
     }
 
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 28px;
-      margin-bottom: 28px;
-    }
-
-    .content-card,
-    .leader-card,
-    .team-card {
+    .section-shell {
       border-radius: var(--radius-lg);
       padding: 30px;
-    }
-
-    .section-label {
-      margin: 0 0 10px;
-      color: var(--highlight);
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      font-size: 0.74rem;
-      font-weight: 800;
+      margin-bottom: 28px;
     }
 
     .section-title {
       margin: 0 0 16px;
       font-family: "Playfair Display", serif;
-      font-size: clamp(2rem, 3vw, 2.8rem);
+      font-size: clamp(2rem, 3vw, 2.75rem);
       line-height: 1.06;
     }
 
-    .content-card p,
-    .leader-text p,
-    .team-card p {
-      margin: 0 0 16px;
+    .section-shell > p {
+      margin: 0;
       color: var(--muted);
       line-height: 1.8;
-      font-size: 1rem;
+      max-width: 76ch;
     }
 
-    .interest-list {
+    .sponsor-grid {
+      margin-top: 28px;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      margin: 22px 0 0;
-      padding: 0;
-      list-style: none;
+      gap: 22px;
     }
 
-    .interest-list li {
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(14, 100, 109, 0.06);
-      color: var(--ink);
-      line-height: 1.6;
-      min-height: 100%;
-    }
-
-    .forecast-card {
-      border-radius: var(--radius-lg);
-      padding: 30px;
-      background: linear-gradient(160deg, #16353c 0%, #0a4e57 100%);
-      color: #fff;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .forecast-card::after {
-      content: "";
-      position: absolute;
-      inset: auto -40px -50px auto;
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      background: rgba(219, 138, 61, 0.26);
-      filter: blur(4px);
-    }
-
-    .forecast-card p {
-      color: rgba(255, 255, 255, 0.84);
-      line-height: 1.8;
-      margin: 0 0 18px;
-    }
-
-    .forecast-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-      font-weight: 700;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.36);
-      padding-bottom: 6px;
-    }
-
-    .profile-section {
-      display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 28px;
-      margin-bottom: 28px;
-    }
-
-    .leader-visual {
-      min-height: 320px;
+    .sponsor-card {
       border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent),
-        linear-gradient(140deg, #1c5660 0%, #0f2228 100%);
       padding: 22px;
-      display: flex;
-      align-items: flex-end;
     }
 
-    .leader-visual .image-placeholder {
-      min-height: 276px;
-    }
-
-    .leader-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: baseline;
-      margin-bottom: 18px;
-    }
-
-    .leader-name {
-      margin: 0;
+    .sponsor-card h3 {
+      margin: 0 0 14px;
       font-family: "Playfair Display", serif;
-      font-size: clamp(1.9rem, 3vw, 2.5rem);
+      font-size: 1.6rem;
+      line-height: 1.08;
     }
 
-    .leader-role {
+    .sponsor-card ol,
+    .sponsor-card ul {
       margin: 0;
-      color: var(--accent);
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.82rem;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.75;
     }
 
-    .team-card {
+    .sponsor-card li + li {
+      margin-top: 8px;
+    }
+
+    .contact-band {
+      border-radius: var(--radius-lg);
       display: grid;
-      grid-template-columns: 1.3fr 0.7fr;
+      grid-template-columns: 1.1fr 0.9fr;
       gap: 24px;
       align-items: center;
+      padding: 28px 30px;
     }
 
-    .team-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 110px;
-      padding: 14px 18px;
-      border-radius: 999px;
-      background: rgba(219, 138, 61, 0.12);
-      color: #8c4d18;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.74rem;
-    }
-
-    .team-title {
-      margin: 0 0 12px;
+    .contact-band h2 {
+      margin: 0 0 10px;
       font-family: "Playfair Display", serif;
       font-size: clamp(1.8rem, 3vw, 2.4rem);
     }
 
+    .contact-band p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
     .contact-link {
-      color: var(--accent-deep);
+      justify-self: end;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 24px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
       font-weight: 800;
+      transition: transform 0.24s ease, background 0.24s ease;
+    }
+
+    .contact-link:hover,
+    .contact-link:focus-visible {
+      transform: translateY(-2px);
+      background: var(--accent-deep);
+      outline: none;
     }
 
     .footer {
-      padding: 20px 0 8px;
+      padding: 18px 0 8px;
       color: var(--muted);
-      font-size: 0.95rem;
       text-align: center;
+      font-size: 0.95rem;
     }
 
     .reveal {
@@ -458,31 +321,11 @@
     }
 
     .reveal:nth-child(2) {
-      animation-delay: 0.12s;
+      animation-delay: 0.1s;
     }
 
     .reveal:nth-child(3) {
-      animation-delay: 0.24s;
-    }
-
-    .image-wrapper {
-      max-width: 540px;
-      height: 540px;
-      margin: 0 auto;
-    }
-    
-    .responsive-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 16px;
-    }
-    
-    .image-overlay {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      z-index: 2;
+      animation-delay: 0.2s;
     }
 
     @keyframes reveal {
@@ -492,145 +335,178 @@
       }
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1080px) {
       .hero,
-      .content-grid,
-      .profile-section,
-      .team-card {
+      .contact-band {
         grid-template-columns: 1fr;
       }
 
+      .sponsor-grid,
       .hero-points {
         grid-template-columns: 1fr;
       }
 
-      .team-card {
-        gap: 16px;
+      .contact-link {
+        justify-self: start;
       }
     }
 
-      .interest-list {
-        grid-template-columns: 1fr;
-      }
-    }
+
   </style>
 </head>
 <body>
   <div id="header-placeholder"></div>
   <div class="page-shell">
+
     <main>
-      <section class="hero" id="home">
+      <section class="hero">
         <div class="hero-media reveal">
-          <div class="image-placeholder" aria-label="Image placeholder">
-            <div>
-              <h2 class="image-title">image </h2>
-              <p class="image-note"></p>
-            </div>
+          <div class="image-placeholder">
+            <span class="image-tag">Insert Image</span>
           </div>
         </div>
 
         <div class="hero-copy reveal">
-          <p class="eyebrow">Urban and Regional Air Quality Management</p>
-          <h1>Researching cleaner air for healthier cities.</h1>
-          <p class="hero-intro">
-            The Urban and Regional Air quality Management (URAM) group at IIT Delhi focuses on regional and urban-scale chemical transport modeling, while working closely with regulatory bodies in India and abroad to shape practical air-quality action plans.
-          </p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="projects.html">Explore projects</a>
-            <a class="button button-secondary" href="#contact">Contact the group</a>
-          </div>
+          <p class="eyebrow">Projects</p>
+          <h1>Sponsored research and applied air-quality initiatives.</h1>
           <ul class="hero-points">
             <li>
-              <span class="point-label">Focus</span>
-              <span class="point-text">Regional and urban air-quality modeling</span>
+              <span class="point-label">Scope</span>
+              <span class="point-text">Urban, regional, and sector-specific air pollution research</span>
             </li>
             <li>
-              <span class="point-label">Approach</span>
-              <span class="point-text">Research aligned with policy and action planning</span>
+              <span class="point-label">Partners</span>
+              <span class="point-text">Government agencies, research councils, and international organizations</span>
             </li>
             <li>
-              <span class="point-label">Base</span>
-              <span class="point-text">Department of Civil Engineering, IIT Delhi</span>
+              <span class="point-label">Impact</span>
+              <span class="point-text">Action plans, technical analysis, and policy support</span>
             </li>
           </ul>
         </div>
       </section>
 
-      <section class="content-grid" id="research">
-        <article class="content-card reveal">
-          <p class="section-label">Research Interests</p>
-          <h2 class="section-title">Science, modeling, and actionable insight.</h2>
-          <p>
-            Our work spans the formation, transformation, and chemical mechanisms of air pollutants near their sources. We build and improve air-quality models that help explain current conditions and support better environmental planning.
-          </p>
-          <p>
-            The group also studies source apportionment, indoor air quality, regional air quality, and air purification, connecting computational analysis with real-world urban challenges.
-          </p>
-          <ul class="interest-list">
-            <li>Formation and transformation of air pollutants near sources</li>
-            <li>Development of air-quality models</li>
-            <li>Source apportionment of air pollutants</li>
-            <li>Indoor and regional air-quality studies</li>
-            <li>Air purification research</li>
-            <li>Policy-facing environmental action support</li>
-          </ul>
-        </article>
+      <section class="section-shell reveal">
+        <p class="section-label">Sponsored Grants</p>
+        <h2 class="section-title">Sponsored External R&D Grants as Principal Investigator</h2>
 
-        <aside class="forecast-card reveal" id="forecast">
-          <p class="section-label" style="color: rgba(255,255,255,0.7);">Forecast Dashboard</p>
-          <h2 class="section-title" style="color: #fff; margin-bottom: 14px;">Delhi-NCR air-quality forecast</h2>
-          <p>
-            More details about the group's air-quality forecast for Delhi-NCR can be explored through the external dashboard linked below.
-          </p>
-          <a class="forecast-link" href="http://www.raasman.com/dashboard/forecast_pollutants" target="_blank" rel="noreferrer">
-            Visit the forecast dashboard
-          </a>
-        </aside>
-      </section>
+        <div class="sponsor-grid">
+          <article class="sponsor-card">
+            <h3>CPCB</h3>
+            <ol>
+              <li>Bi-weekly action plan for effective and efficient management of PM2.5 concentrations in Delhi city</li>
+              <li>Third Party audit (Technical) of Continuous Ambient Air Quality Monitoring (CAAQM) Stations</li>
+              <li>Pilot Study for Assessment of Reducing Air Pollution in Urban Area by Using Medium Scale Cleaning System</li>
+              <li>Using Machine Learning to Study Air Quality Data Collected by Pollution Control Boards Across India</li>
+            </ol>
+          </article>
 
-      <section class="profile-section">
-          <div class="image-placeholder image-wrapper">
-          <img src="images/harsha_kota.jpeg" alt="Prof. Sri Harsha Kota" class="responsive-img">
-          
-          <div class="image-overlay">
-            <span class="image-tag">Prof. Sri Harsha Kota</span>
-          </div>
+          <article class="sponsor-card">
+            <h3>SERB</h3>
+            <ol>
+              <li>Studying size resolved particulate matter in North East India</li>
+              <li>PM10 and PM2.5 related health risks in North East India: Source Identification and Cohort Analysis</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>DST</h3>
+            <ol>
+              <li>Detection and Mitigation of Air Pollution in bus stops</li>
+              <li>Collection of Particulate matter in air using filters placed on the top of moving vehicles</li>
+              <li>Technical Air Resource Unit (TARU) for scientific analysis, management and coordination</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>PPCB</h3>
+            <ol>
+              <li>Action Plan to Mitigate Particulate Matter in seven non-attainment cities of Punjab using Emission Inventory and Source Apportionment</li>
+              <li>Particulate Matter Carrying capacity of nine non-attainment cities of Punjab</li>
+              <li>Source Apportionment and Emission Inventory development of Amritsar city, India</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>HSPCB</h3>
+            <ol>
+              <li>Quantification and contribution of paddy stubble burning emissions in Haryana to PM2.5 concentrations on surrounding regions</li>
+              <li>Development of Emission Inventory for Eighteen Villages of Mahendragarh District of Haryana</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>ICMR</h3>
+            <ol>
+              <li>Air Pollution, Malaria and Climate Change-Machine learning approach</li>
+              <li>Using AI/ML to associate meteorology, air quality and eye health in India-Cohort study</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>RSPCB</h3>
+            <ul>
+              <li>Source Apportionment, Emission Inventory and Carrying Capacity of Alwar city</li>
+            </ul>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>DPCC</h3>
+            <ol>
+              <li>Studying Efficiency of Smog tower in Delhi</li>
+              <li>Real time source apportionment in Delhi</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>NHAI</h3>
+            <ul>
+              <li>Evaluation of Impact of Electronic Toll Collection System on Vehicular Emissions in India</li>
+            </ul>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>Eureka Forbes</h3>
+            <ul>
+              <li>Development and performance validation of membrane based air purifier</li>
+            </ul>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>CREA</h3>
+            <ol>
+              <li>Development of emission inventory framework for India</li>
+              <li>Emission inventory for residential and industrial emissions in India</li>
+            </ol>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>WRI and USAID</h3>
+            <ul>
+              <li>Clean Air Action Plans for Indore city</li>
+            </ul>
+          </article>
+
+          <article class="sponsor-card">
+            <h3>NERC-UK</h3>
+            <ul>
+              <li>Understanding synergies and tensions in air quality-climate adaptation needs</li>
+            </ul>
+          </article>
         </div>
-
-        <article class="leader-card reveal">
-          <p class="section-label">Leadership</p>
-          <div class="leader-header">
-            <h2 class="leader-name">Dr. Sri Harsha Kota</h2>
-            <p class="leader-role">Group Leader</p>
-          </div>
-          <div class="leader-text">
-            <p>
-              Dr. Sri Harsha Kota completed his Bachelor of Engineering in Civil Engineering from CBIT, Osmania University, Hyderabad, India in 2007. He received his Master of Science and Doctoral degrees from Texas A&amp;M University, College Station, USA in 2014.
-            </p>
-            <p>
-              He worked as an Assistant Professor at IIT Guwahati for more than three years before joining IIT Delhi in May 2018. He is currently an Professor in the Department of Civil Engineering at IIT Delhi.
-            </p>
-          </div>
-        </article>
       </section>
 
-      <section class="team-card reveal" id="team">
+      <section class="contact-band reveal" id="contact">
         <div>
-          <p class="section-label">Team</p>
-          <h2 class="team-title">URAM-IIT Delhi Team</h2>
-          <p>
-            The group brings together research, technical modeling, and practical environmental insight to contribute to healthier and more resilient urban regions.
-          </p>
-          <p id="contact">
-            Get in touch at
-            <a class="contact-link" href="mailto:harshakota@iitd.ac.in">harshakota@iitd.ac.in</a>
-          </p>
+          <p class="section-label">Contact</p>
+          <h2>Get in touch with us for project collaboration.</h2>
+          <p>For research partnerships, sponsored initiatives, and technical collaboration, contact the group directly.</p>
         </div>
-        <div class="team-badge">IIT Delhi</div>
+        <a class="contact-link" href="mailto:harshakota@iitd.ac.in">harshakota@iitd.ac.in</a>
       </section>
     </main>
   </div>
 
-  <script src="components.js"></script>
+<script src="components.js"></script>
 </body>
 </html>
