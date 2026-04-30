@@ -6,7 +6,7 @@
 <title>URAM-IITD | Publications</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
-
+<link rel="stylesheet" href="style.css">
 <style>
 :root {
   --bg:#f3efe8;
@@ -27,32 +27,6 @@ body {
   max-width:1100px;
   margin:auto;
   padding:20px;
-}
-
-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:10px;
-}
-
-nav {
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-}
-
-nav a {
-  padding:8px 12px;
-  border-radius:20px;
-  text-decoration:none;
-  color:var(--muted);
-}
-
-nav a:hover {
-  background:#e0f2f3;
-  color:var(--accent);
 }
 
 h1 {
@@ -107,34 +81,13 @@ h1 {
   background-color: #0a464c;
 }
 
-/* Responsive */
-@media(max-width:768px){
-  h1 {font-size:1.8rem;}
-}
 </style>
 </head>
 
 <body>
-
+<div id="header-placeholder"></div>
 <div class="container">
-<header class="site-header">
-      <div class="header-bar">
-        <div class="brand">
-          <span class="brand-kicker">IIT Delhi Research Group</span>
-          <p class="brand-name">URAM-IITD</p>
-        </div>
-        <nav class="nav" aria-label="Primary navigation">
-          <a href="index.html">Home</a>
-          <a href="projects.html">Projects</a>
-          <a href="teaching.html">Teaching</a>
-          <a href="publications.html">Publications</a>
-          <a href="members.html">Members</a>
-          <a href="collabrations.html">Collaborations</a>
-          <a href="current-openings.html">Current Openings</a>
-          <a href="contact.html">Contact</a>
-        </nav>
-      </div>
-    </header>
+
 
 <h1>Publications</h1>
 
@@ -267,18 +220,7 @@ h1 {
 
 </div>
 
-<script>
-  function toggleVisibility(id, btn) {
-    var elem = document.getElementById(id);
-    if (elem.style.display === "none" || elem.style.display === "") {
-      elem.style.display = "block";
-      btn.innerHTML = "Show Less";
-    } else {
-      elem.style.display = "none";
-      btn.innerHTML = "Show More";
-    }
-  }
-</script>
+<script src="components.js"></script>
 
 </body>
 </html>
