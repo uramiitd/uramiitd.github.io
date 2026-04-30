@@ -6,7 +6,7 @@
 <title>URAM-IITD | Teaching</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-
+<link rel="stylesheet" href="style.css">
 <style>
 :root {
   --bg:#f3efe8;
@@ -33,74 +33,7 @@ body {
   padding:20px;
 }
 
-/* HEADER */
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  margin-bottom: 24px;
-  backdrop-filter: blur(18px);
-}
 
-.header-bar {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  padding:12px 18px;
-  background:var(--surface);
-  border:1px solid rgba(255,255,255,0.7);
-  border-radius:20px;
-  box-shadow:var(--shadow);
-}
-
-.brand {
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-}
-
-.brand span {
-  font-size:0.75rem;
-  letter-spacing:0.22em;
-  text-transform:uppercase;
-  color:var(--accent);
-  font-weight:800;
-}
-
-.brand h2 {
-  margin:0;
-  font-family:"Playfair Display";
-  font-size:1.6rem;
-}
-
-.nav {
-  display:flex;
-  align-items:center;
-  gap:6px;
-  overflow-x:auto;
-}
-
-.nav a {
-  padding:8px 14px;
-  border-radius:999px;
-  font-size:0.85rem;
-  color:var(--muted);
-  text-decoration:none;
-  transition:0.25s ease;
-  white-space:nowrap;
-}
-
-.nav a:hover {
-  background:rgba(14,100,109,0.1);
-  color:var(--accent-deep);
-}
-
-/* ACTIVE LINK */
-.nav a.active {
-  background:var(--accent);
-  color:#fff;
-}
 
 /* SECTION */
 .section {
@@ -162,32 +95,9 @@ td:first-child {
 </head>
 
 <body>
-
+<div id="header-placeholder"></div>
 <div class="page">
-
-<!-- HEADER -->
-<div class="site-header">
-  <div class="header-bar">
-    
-    <div class="brand">
-      <span>IIT Delhi Research Group</span>
-      <h2>URAM-IITD</h2>
-    </div>
-
-    <div class="nav">
-      <a href="index.html">Home</a>
-      <a href="projects.html">Projects</a>
-      <a href="teaching.html" class="active">Teaching</a>
-      <a href="publications.html">Publications</a>
-      <a href="members.html">Members</a>
-      <a href="collabrations.html">Collaborations</a>
-      <a href="current-openings.html">Current Openings</a>
-      <a href="contact.html">Contact</a>
-    </div>
-
-  </div>
-</div>
-
+  
 <!-- IIT GUWAHATI -->
 <div class="section">
   <h2>IIT Guwahati</h2>
@@ -229,10 +139,7 @@ td:first-child {
 </div>
 
 </div>
-<script>
-function toggleMenu() {
-  document.getElementById("navMenu").classList.toggle("show");
-}
-</script>
+
+<script src="components.js"></script>
 </body>
 </html>
