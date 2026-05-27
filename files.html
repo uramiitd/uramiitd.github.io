@@ -224,41 +224,45 @@
       const descBlock = document.getElementById("active-folder-desc");
       const search = (document.getElementById("search-input")?.value || "").toLowerCase();
       
-      list.innerHTML = `<div class="loading-state"><i class="ti ti-loader-2 spin"></i> Loading files…</div>`;
-      descBlock.style.display = "none"; // Hide description while loading
+      list.innerHTML = `<div class="loading-state"><i class="ti ti-loader-2 spin"></i> Loading…</div>`;
+      descBlock.style.display = "none";
 
       try {
-        // Attempt to load folder description from its .keep file
-        try {
-          const keepMeta = await storage.ref(currentPath + "/.keep").getMetadata();
-          if (keepMeta?.customMetadata?.description) {
-            document.getElementById("folder-desc-text").textContent = keepMeta.customMetadata.description;
-            descBlock.style.display = "flex";
-          }
-        } catch(e) {
-          // No .keep file or no description exists, safely ignore
-        }
+        // Load folder description from .keep file (non-blocking)
+        storage.ref(currentPath + "/.keep").getMetadata()
+          .then(keepMeta => {
+            if (keepMeta?.customMetadata?.description) {
+              document.getElementById("folder-desc-text").textContent = keepMeta.customMetadata.description;
+              descBlock.style.display = "flex";
+            }
+          }).catch(() => {});
 
         const res = await storage.ref(currentPath).listAll();
         
+        // Render folders immediately — no metadata fetch needed
         const folders = res.prefixes.map(p => ({
-          isFolder: true,
-          name: p.name,
-          fullPath: p.fullPath,
-          meta: { size: 0, timeCreated: 0 } 
+          isFolder: true, name: p.name, fullPath: p.fullPath,
+          meta: { size: 0, timeCreated: 0 }
         }));
 
-        const files = await Promise.all(
-          res.items
-            .filter(i => i.name !== ".keep")
-            .map(async item => {
-              const [url, meta] = await Promise.all([item.getDownloadURL(), item.getMetadata()]);
-              return { isFolder: false, name: item.name, url, meta, fullPath: item.fullPath };
-            })
-        );
-        
-        allItems = [...folders, ...files];
+        // Show folders right away while files load
+        allItems = [...folders];
         renderFiles(search);
+
+        // Load file metadata in background, then re-render
+        if (res.items.filter(i => i.name !== ".keep").length > 0) {
+          list.className = list.className; // preserve class
+          const files = await Promise.all(
+            res.items
+              .filter(i => i.name !== ".keep")
+              .map(async item => {
+                const [url, meta] = await Promise.all([item.getDownloadURL(), item.getMetadata()]);
+                return { isFolder: false, name: item.name, url, meta, fullPath: item.fullPath };
+              })
+          );
+          allItems = [...folders, ...files];
+          renderFiles(search);
+        }
       } catch(e) {
         list.innerHTML = `<div class="empty-state err">
           <i class="ti ti-lock" style="font-size:2rem;color:#e74c3c"></i>
@@ -338,7 +342,7 @@
           </div>
           <div class="file-card-actions">
             ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
-            <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+            <button class="btn-icon" title="Download" onclick="downloadFile('${safeUrl}','${safeName}')"><i class="ti ti-download"></i></button>
             <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
           </div>
         </div>`;
@@ -378,7 +382,7 @@
           </div>
           <div class="file-row-actions">
             ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
-            <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+            <button class="btn-icon" title="Download" onclick="downloadFile('${safeUrl}','${safeName}')"><i class="ti ti-download"></i></button>
             <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
           </div>
         </div>`;
@@ -565,36 +569,54 @@
       const body  = document.getElementById("preview-body");
       const title = document.getElementById("preview-title");
       title.textContent = name;
-      document.getElementById("preview-download").href = url;
 
-      let content = "";
-      if (["jpg","jpeg","png","gif","webp","svg"].includes(e)) {
-        content = `<img src="${url}" alt="${name}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:8px"/>`;
-      } else if (e === "pdf") {
-        content = `<iframe src="${url}" style="width:100%;height:75vh;border:none;border-radius:8px"></iframe>`;
-      } else if (["mp4","mov"].includes(e)) {
-        content = `<video src="${url}" controls style="max-width:100%;max-height:75vh;border-radius:8px"></video>`;
-      } else if (["txt","md","csv"].includes(e)) {
-        content = `<div class="text-preview-loading"><i class="ti ti-loader-2 spin"></i> Loading…</div>`;
-        fetch(url).then(r => r.text()).then(text => {
-          document.getElementById("preview-body").innerHTML =
-            `<pre class="text-preview">${escapeHtml(text.slice(0,20000))}</pre>`;
-        }).catch(() => {
-          document.getElementById("preview-body").innerHTML =
-            `<div style="text-align:center; padding: 20px;">
-              <i class="ti ti-alert-triangle" style="font-size:3rem; color:#e74c3c; margin-bottom:10px;"></i>
-              <p style="color:#e74c3c; font-weight:600;">Preview Blocked</p>
-              <p style="color:var(--ink2); font-size:0.9rem; max-width:400px; margin: 10px auto;">
-                The server blocked the request (CORS error). This file cannot be previewed in the browser directly.
-              </p>
-              <a href="${url}" download class="btn-fill" style="margin-top:10px; display:inline-block;"><i class="ti ti-download"></i> Download File Instead</a>
-            </div>`;
-        });
-      }
+      // Wire the header Download button to the blob-based downloader
+      const dlBtn = document.getElementById("preview-download");
+      dlBtn.removeAttribute("href");
+      dlBtn.removeAttribute("download");
+      dlBtn.removeAttribute("target");
+      dlBtn.onclick = (ev) => { ev.preventDefault(); downloadFile(url, name); };
 
-      body.innerHTML = content;
+      body.innerHTML = `<div class="text-preview-loading"><i class="ti ti-loader-2 spin"></i> Loading…</div>`;
       modal.style.display = "flex";
       document.body.style.overflow = "hidden";
+
+      if (["jpg","jpeg","png","gif","webp","svg"].includes(e)) {
+        body.innerHTML = `<img src="${url}" alt="${name}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:8px"/>`;
+      } else if (e === "pdf") {
+        // Fetch as blob to bypass Firebase X-Frame-Options restriction
+        fetch(url)
+          .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); })
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            body.innerHTML = `<iframe src="${blobUrl}" style="width:100%;height:75vh;border:none;border-radius:8px"></iframe>`;
+          })
+          .catch(err => {
+            body.innerHTML = `<div style="text-align:center;padding:32px">
+              <i class="ti ti-alert-triangle" style="font-size:3rem;color:#e74c3c;margin-bottom:10px;display:block"></i>
+              <p style="color:#e74c3c;font-weight:600">Preview failed</p>
+              <p style="color:var(--ink2);font-size:0.9rem;margin:8px 0 16px">${escapeHtml(err.message)}</p>
+              <button class="btn-fill" onclick="downloadFile('${url.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+                <i class="ti ti-download"></i> Download Instead
+              </button></div>`;
+          });
+      } else if (["mp4","mov"].includes(e)) {
+        body.innerHTML = `<video src="${url}" controls style="max-width:100%;max-height:75vh;border-radius:8px"></video>`;
+      } else if (["txt","md","csv"].includes(e)) {
+        fetch(url).then(r => r.text()).then(text => {
+          body.innerHTML = `<pre class="text-preview">${escapeHtml(text.slice(0,20000))}</pre>`;
+        }).catch(() => {
+          body.innerHTML = `<div style="text-align:center;padding:32px">
+            <i class="ti ti-alert-triangle" style="font-size:3rem;color:#e74c3c;margin-bottom:10px;display:block"></i>
+            <p style="color:#e74c3c;font-weight:600">Preview Blocked</p>
+            <p style="color:var(--ink2);font-size:0.9rem;max-width:400px;margin:8px auto 16px">
+              CORS policy blocked this preview.
+            </p>
+            <button class="btn-fill" onclick="downloadFile('${url.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+              <i class="ti ti-download"></i> Download Instead
+            </button></div>`;
+        });
+      }
     }
 
     function closePreview() {
@@ -605,6 +627,27 @@
 
     function escapeHtml(str) {
       return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    /* ── download via blob (works cross-origin with Firebase Storage) ── */
+    async function downloadFile(url, name) {
+      showToast("⬇️ Preparing " + name + "…");
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+        showToast("✓ Download started: " + name);
+      } catch(e) {
+        showToast("Download failed: " + e.message, "err");
+      }
     }
 
     /* ── toast ── */
