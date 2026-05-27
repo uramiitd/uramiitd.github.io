@@ -7,8 +7,9 @@
 
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"/>
+  
+  <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase Compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
@@ -29,12 +30,14 @@
 
     /* ── helpers ── */
     function fmt(bytes) {
+      if (!bytes) return "Folder";
       if (bytes < 1024) return bytes + " B";
       if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(1) + " KB";
       return (bytes / 1024 ** 2).toFixed(2) + " MB";
     }
     function ext(name) { return name.split(".").pop().toLowerCase(); }
-    function getIcon(name) {
+    function getIcon(name, isFolder) {
+      if (isFolder) return "ti-folder-filled";
       const e = ext(name);
       const map = {
         pdf:"ti-file-type-pdf", doc:"ti-file-type-doc", docx:"ti-file-type-docx",
@@ -50,7 +53,8 @@
       };
       return map[e] || "ti-file";
     }
-    function getIconColor(name) {
+    function getIconColor(name, isFolder) {
+      if (isFolder) return "#0d5c6b";
       const e = ext(name);
       const map = {
         pdf:"#e74c3c", doc:"#2e86de", docx:"#2e86de", xls:"#27ae60", xlsx:"#27ae60",
@@ -66,6 +70,7 @@
       return ["pdf","jpg","jpeg","png","gif","webp","svg","mp4","mov","txt","md","csv"].includes(e);
     }
     function timeAgo(ms) {
+      if (!ms) return "";
       const s = Math.floor((Date.now() - ms) / 1000);
       if (s < 60)    return "just now";
       if (s < 3600)  return Math.floor(s/60) + "m ago";
@@ -81,7 +86,7 @@
         document.getElementById("user-name").textContent  = user.displayName;
         document.getElementById("user-email").textContent = user.email;
         if (user.photoURL) document.getElementById("user-avatar").src = user.photoURL;
-        loadFolders();
+        loadSidebarFolders();
       }
     });
     function signIn() {
@@ -93,28 +98,30 @@
     }
 
     /* ── state ── */
-    let currentFolder = "general";
+    let currentPath = "general";
     let viewMode = "grid"; // grid | list
+    let allItems = [];
 
-    /* ── sidebar folders ── */
+    /* ── sidebar & paths ── */
     const defaultFolders = ["general","data","reports","presentations","papers"];
-    async function loadFolders() {
+    
+    async function loadSidebarFolders() {
       const nav = document.getElementById("folder-nav");
       nav.innerHTML = "";
-      // Load defaults + any custom folders from storage refs
-      let folders = [...defaultFolders];
+      
+      let roots = [...defaultFolders];
       try {
-        const root = await storage.ref("/").listAll();
-        root.prefixes.forEach(p => {
-          if (!folders.includes(p.name)) folders.push(p.name);
+        const rootRes = await storage.ref("/").listAll();
+        rootRes.prefixes.forEach(p => {
+          if (!roots.includes(p.name)) roots.push(p.name);
         });
       } catch(e) {}
-      folders.forEach(f => addFolderItem(f));
-      setFolder(currentFolder);
-      loadFiles();
+      
+      roots.forEach(f => addSidebarItem(f));
+      setPath(currentPath);
     }
 
-    function addFolderItem(name) {
+    function addSidebarItem(name) {
       const nav = document.getElementById("folder-nav");
       const labels = {
         general:"General", data:"Data & Datasets", reports:"Reports",
@@ -125,52 +132,293 @@
         presentations:"ti-presentation", papers:"ti-books"
       };
       const div = document.createElement("div");
-      div.className = "nav-item" + (name === currentFolder ? " active" : "");
-      div.dataset.folder = name;
-      div.onclick = () => setFolder(name);
+      div.className = "nav-item";
+      div.id = "sidebar-" + name;
+      div.onclick = () => setPath(name);
       div.innerHTML = `<i class="ti ${icons[name]||'ti-folder'}" aria-hidden="true"></i>
         <span>${labels[name] || name}</span>`;
       nav.appendChild(div);
     }
 
-    function setFolder(name) {
-      currentFolder = name;
+    function setPath(path) {
+      currentPath = path;
+      
+      // Update sidebar active state (only base root)
+      const rootFolder = path.split('/')[0];
       document.querySelectorAll(".nav-item").forEach(el => {
-        el.classList.toggle("active", el.dataset.folder === name);
+        el.classList.toggle("active", el.id === "sidebar-" + rootFolder);
       });
-      document.getElementById("current-folder-title").textContent =
-        ({general:"General", data:"Data & Datasets", reports:"Reports",
-          presentations:"Presentations", papers:"Papers & Publications"}[name] || name);
+      
+      updateBreadcrumbs();
       loadFiles();
     }
 
-    /* ── create folder modal ── */
+    function updateBreadcrumbs() {
+      const parts = currentPath.split("/");
+      let html = "";
+      let acc = "";
+      
+      const labels = {
+        general:"General", data:"Data & Datasets", reports:"Reports",
+        presentations:"Presentations", papers:"Papers & Publications"
+      };
+
+      parts.forEach((p, i) => {
+        acc += (i === 0 ? p : "/" + p);
+        const displayName = i === 0 && labels[p] ? labels[p] : p;
+        
+        if (i < parts.length - 1) {
+          html += `<span class="crumb-link" onclick="setPath('${acc}')">${displayName}</span> 
+                   <i class="ti ti-chevron-right crumb-sep"></i> `;
+        } else {
+          html += `<span class="crumb-active">${displayName}</span>`;
+        }
+      });
+      document.getElementById("current-folder-title").innerHTML = html;
+    }
+
+    /* ── create folder ── */
     function openNewFolderModal() {
-      document.getElementById("modal-overlay").style.display = "flex";
+      document.getElementById("folder-modal-overlay").style.display = "flex";
       document.getElementById("new-folder-input").value = "";
       setTimeout(() => document.getElementById("new-folder-input").focus(), 50);
     }
     function closeNewFolderModal() {
-      document.getElementById("modal-overlay").style.display = "none";
+      document.getElementById("folder-modal-overlay").style.display = "none";
     }
     async function createFolder() {
       const name = document.getElementById("new-folder-input").value.trim()
         .toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "");
       if (!name) { showToast("Enter a valid folder name", "err"); return; }
-      // Create a placeholder file to create the folder in Firebase Storage
+      
       try {
         const placeholder = new Blob([""], {type:"text/plain"});
-        await storage.ref(name + "/.keep").put(placeholder);
+        const newPath = currentPath + "/" + name + "/.keep";
+        await storage.ref(newPath).put(placeholder);
         closeNewFolderModal();
-        showToast("📁 Folder '" + name + "' created!");
-        await loadFolders();
-        setFolder(name);
+        showToast(`📁 Folder '${name}' created!`);
+        loadFiles();
       } catch(e) {
         showToast("Failed: " + e.message, "err");
       }
     }
 
-    /* ── upload ── */
+    /* ── load files & folders ── */
+    async function loadFiles() {
+      const list   = document.getElementById("file-list");
+      const search = (document.getElementById("search-input")?.value || "").toLowerCase();
+      list.innerHTML = `<div class="loading-state"><i class="ti ti-loader-2 spin"></i> Loading files…</div>`;
+
+      try {
+        const res = await storage.ref(currentPath).listAll();
+        
+        // Folders (Prefixes)
+        const folders = res.prefixes.map(p => ({
+          isFolder: true,
+          name: p.name,
+          fullPath: p.fullPath,
+          meta: { size: 0, timeCreated: 0 } 
+        }));
+
+        // Files (Items)
+        const files = await Promise.all(
+          res.items
+            .filter(i => i.name !== ".keep")
+            .map(async item => {
+              const [url, meta] = await Promise.all([item.getDownloadURL(), item.getMetadata()]);
+              return { isFolder: false, name: item.name, url, meta, fullPath: item.fullPath };
+            })
+        );
+        
+        allItems = [...folders, ...files];
+        renderFiles(search);
+      } catch(e) {
+        list.innerHTML = `<div class="empty-state err">
+          <i class="ti ti-lock" style="font-size:2rem;color:#e74c3c"></i>
+          <p style="font-weight:600;color:#e74c3c;margin:8px 0 4px">Access denied</p>
+          <p style="color:#6c757d;font-size:0.85rem">Your account isn't authorised. Contact Prof. Kota.</p>
+        </div>`;
+      }
+    }
+
+    let sortMode = "name"; 
+
+    function renderFiles(search) {
+      const list = document.getElementById("file-list");
+      let filtered = search
+        ? allItems.filter(i => i.name.toLowerCase().includes(search))
+        : [...allItems];
+
+      // Sort: Folders first, then by selected mode
+      filtered.sort((a,b) => {
+        if (a.isFolder && !b.isFolder) return -1;
+        if (!a.isFolder && b.isFolder) return 1;
+        
+        if (sortMode === "newest") return new Date(b.meta.timeCreated) - new Date(a.meta.timeCreated);
+        if (sortMode === "oldest") return new Date(a.meta.timeCreated) - new Date(b.meta.timeCreated);
+        if (sortMode === "name") return a.name.localeCompare(b.name);
+        if (sortMode === "size") return b.meta.size - a.meta.size;
+        return 0;
+      });
+
+      document.getElementById("file-count").textContent =
+        filtered.length + " item" + (filtered.length !== 1 ? "s" : "");
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state">
+          <i class="ti ti-folder-open" style="font-size:2.5rem;opacity:.3"></i>
+          <p>${search ? "No items match your search." : "This folder is empty."}</p>
+        </div>`;
+        list.className = "";
+        return;
+      }
+
+      const generateCard = (item) => {
+        const { isFolder, name, url, meta, fullPath } = item;
+        const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const safePath = fullPath.replace(/'/g, "\\'");
+        
+        if (isFolder) {
+          return `
+          <div class="file-card folder-card" onclick="setPath('${safePath}')">
+            <div class="file-card-icon" style="background:${getIconColor(name, true)}18">
+              <i class="ti ${getIcon(name, true)}" style="color:${getIconColor(name, true)};font-size:2.2rem" aria-hidden="true"></i>
+            </div>
+            <div class="file-card-body">
+              <span class="file-card-name" title="${safeName}">${name}</span>
+              <span class="file-card-meta">Folder</span>
+            </div>
+            <div class="file-card-actions" onclick="event.stopPropagation()">
+              <button class="btn-icon btn-del" title="Delete Folder" onclick="deleteFolder('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>`;
+        }
+
+        const by = meta.customMetadata?.uploadedBy || "Unknown";
+        const time = timeAgo(new Date(meta.timeCreated).getTime());
+        const size = fmt(meta.size);
+        const prev = isPreviewable(name);
+        const safeUrl = encodeURI(url);
+        
+        return `
+        <div class="file-card">
+          <div class="file-card-icon" style="background:${getIconColor(name, false)}18">
+            <i class="ti ${getIcon(name, false)}" style="color:${getIconColor(name, false)};font-size:2rem" aria-hidden="true"></i>
+          </div>
+          <div class="file-card-body">
+            <span class="file-card-name" title="${safeName}">${name}</span>
+            <span class="file-card-meta">${size} · ${by}</span>
+            <span class="file-card-time">${time}</span>
+          </div>
+          <div class="file-card-actions">
+            ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
+            <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+            <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`;
+      };
+
+      const generateRow = (item) => {
+        const { isFolder, name, url, meta, fullPath } = item;
+        const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const safePath = fullPath.replace(/'/g, "\\'");
+
+        if (isFolder) {
+          return `
+          <div class="file-row folder-row" onclick="setPath('${safePath}')">
+            <i class="ti ${getIcon(name, true)}" style="color:${getIconColor(name, true)};font-size:1.5rem;flex-shrink:0" aria-hidden="true"></i>
+            <div class="file-row-info">
+              <span class="file-row-name">${name}</span>
+              <span class="file-row-meta">Folder</span>
+            </div>
+            <div class="file-row-actions" onclick="event.stopPropagation()">
+              <button class="btn-icon btn-del" title="Delete Folder" onclick="deleteFolder('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>`;
+        }
+
+        const by = meta.customMetadata?.uploadedBy || "Unknown";
+        const time = timeAgo(new Date(meta.timeCreated).getTime());
+        const size = fmt(meta.size);
+        const prev = isPreviewable(name);
+        const safeUrl = encodeURI(url);
+        
+        return `
+        <div class="file-row">
+          <i class="ti ${getIcon(name, false)}" style="color:${getIconColor(name, false)};font-size:1.3rem;flex-shrink:0" aria-hidden="true"></i>
+          <div class="file-row-info">
+            <span class="file-row-name">${name}</span>
+            <span class="file-row-meta">${size} · ${by} · ${time}</span>
+          </div>
+          <div class="file-row-actions">
+            ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
+            <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+            <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`;
+      };
+
+      if (viewMode === "grid") {
+        list.className = "file-grid";
+        list.innerHTML = filtered.map(generateCard).join("");
+      } else {
+        list.className = "file-list-view";
+        list.innerHTML = filtered.map(generateRow).join("");
+      }
+    }
+
+    function onSearch() { renderFiles(document.getElementById("search-input").value.toLowerCase()); }
+    function onSort(val) { sortMode = val; renderFiles(document.getElementById("search-input").value.toLowerCase()); }
+    function toggleView(mode) {
+      viewMode = mode;
+      document.getElementById("btn-grid").classList.toggle("active", mode === "grid");
+      document.getElementById("btn-list").classList.toggle("active", mode === "list");
+      renderFiles(document.getElementById("search-input").value.toLowerCase());
+    }
+
+    /* ── delete ── */
+    async function deleteFile(path, name) {
+      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      try {
+        await storage.ref(path).delete();
+        showToast("🗑️ " + name + " deleted.");
+        loadFiles();
+      } catch(e) {
+        showToast("Delete failed: " + e.message, "err");
+      }
+    }
+
+    async function deleteFolderRecursive(ref) {
+      const res = await ref.listAll();
+      await Promise.all(res.items.map(item => item.delete()));
+      for (const prefix of res.prefixes) {
+        await deleteFolderRecursive(prefix);
+      }
+    }
+
+    async function deleteFolder(path, name) {
+      if (!confirm(`WARNING: Are you sure you want to delete the folder "${name}" and ALL files inside it? This cannot be undone.`)) return;
+      try {
+        await deleteFolderRecursive(storage.ref(path));
+        showToast(`🗑️ Folder ${name} deleted.`);
+        loadFiles();
+      } catch(e) {
+        showToast("Failed to delete folder: " + e.message, "err");
+      }
+    }
+
+    /* ── upload UI ── */
+    function openUploadModal() {
+      document.getElementById("upload-modal-overlay").style.display = "flex";
+    }
+    function closeUploadModal() {
+      if (filesToUpload.length > 0) {
+        if(!confirm("Cancel upload and clear queued files?")) return;
+        clearQueue();
+      }
+      document.getElementById("upload-modal-overlay").style.display = "none";
+    }
+
     let filesToUpload = [];
 
     function handleDrop(e) {
@@ -209,7 +457,7 @@
       }
       wrap.innerHTML = filesToUpload.map((f, i) => `
         <div class="queue-item">
-          <i class="ti ${getIcon(f.name)}" style="color:${getIconColor(f.name)};font-size:18px" aria-hidden="true"></i>
+          <i class="ti ${getIcon(f.name, false)}" style="color:${getIconColor(f.name, false)};font-size:18px" aria-hidden="true"></i>
           <div class="queue-info">
             <span class="queue-name">${f.name}</span>
             <span class="queue-size">${fmt(f.size)}</span>
@@ -232,7 +480,7 @@
       clearQueue();
 
       for (const file of files) {
-        const path = currentFolder + "/" + file.name;
+        const path = currentPath + "/" + file.name;
         const task = storage.ref(path).put(file, {
           customMetadata: { uploadedBy: user.displayName, email: user.email }
         });
@@ -253,6 +501,7 @@
         }).catch(() => {});
       }
       loadFiles();
+      setTimeout(closeUploadModal, 1000);
     }
 
     function addProgressBar(id, name) {
@@ -260,141 +509,12 @@
       const bar  = document.createElement("div");
       bar.id = id; bar.className = "prog-bar";
       bar.innerHTML = `
-        <i class="ti ${getIcon(name)}" style="color:${getIconColor(name)};font-size:16px;flex-shrink:0" aria-hidden="true"></i>
+        <i class="ti ${getIcon(name, false)}" style="color:${getIconColor(name, false)};font-size:16px;flex-shrink:0" aria-hidden="true"></i>
         <span class="prog-name">${name}</span>
         <div class="prog-track"><div class="prog-fill"></div></div>
         <span class="prog-pct">0%</span>`;
       wrap.appendChild(bar);
       return bar;
-    }
-
-    /* ── load files ── */
-    let allItems = [];
-    async function loadFiles() {
-      const list   = document.getElementById("file-list");
-      const search = (document.getElementById("search-input")?.value || "").toLowerCase();
-      list.innerHTML = `<div class="loading-state"><i class="ti ti-loader-2 spin"></i> Loading files…</div>`;
-
-      try {
-        const res   = await storage.ref(currentFolder).listAll();
-        const items = await Promise.all(
-          res.items
-            .filter(i => i.name !== ".keep")
-            .map(async item => {
-              const [url, meta] = await Promise.all([item.getDownloadURL(), item.getMetadata()]);
-              return { name: item.name, url, meta, fullPath: item.fullPath };
-            })
-        );
-        allItems = items;
-        renderFiles(search);
-      } catch(e) {
-        list.innerHTML = `<div class="empty-state err">
-          <i class="ti ti-lock" style="font-size:2rem;color:#e74c3c"></i>
-          <p style="font-weight:600;color:#e74c3c;margin:8px 0 4px">Access denied</p>
-          <p style="color:#6c757d;font-size:0.85rem">Your account isn't authorised. Contact Prof. Kota.</p>
-        </div>`;
-      }
-    }
-
-    let sortMode = "newest"; // newest | oldest | name | size
-
-    function renderFiles(search) {
-      const list     = document.getElementById("file-list");
-      let filtered = search
-        ? allItems.filter(i => i.name.toLowerCase().includes(search))
-        : [...allItems];
-
-      // sort
-      if (sortMode === "newest") filtered.sort((a,b) => new Date(b.meta.timeCreated) - new Date(a.meta.timeCreated));
-      else if (sortMode === "oldest") filtered.sort((a,b) => new Date(a.meta.timeCreated) - new Date(b.meta.timeCreated));
-      else if (sortMode === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
-      else if (sortMode === "size") filtered.sort((a,b) => b.meta.size - a.meta.size);
-
-      document.getElementById("file-count").textContent =
-        filtered.length + " file" + (filtered.length !== 1 ? "s" : "");
-
-      if (!filtered.length) {
-        list.innerHTML = `<div class="empty-state">
-          <i class="ti ti-folder-open" style="font-size:2.5rem;opacity:.3"></i>
-          <p>${search ? "No files match your search." : "No files yet. Upload the first one!"}</p>
-        </div>`;
-        list.className = "";
-        return;
-      }
-
-      if (viewMode === "grid") {
-        list.className = "file-grid";
-        list.innerHTML = filtered.map(({ name, url, meta, fullPath }) => {
-          const by   = meta.customMetadata?.uploadedBy || "Unknown";
-          const time = timeAgo(new Date(meta.timeCreated).getTime());
-          const size = fmt(meta.size);
-          const prev = isPreviewable(name);
-          const safeUrl  = encodeURI(url);
-          const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-          const safePath = fullPath.replace(/'/g, "\\'");
-          return `
-          <div class="file-card">
-            <div class="file-card-icon" style="background:${getIconColor(name)}18">
-              <i class="ti ${getIcon(name)}" style="color:${getIconColor(name)};font-size:2rem" aria-hidden="true"></i>
-            </div>
-            <div class="file-card-body">
-              <span class="file-card-name" title="${safeName}">${name}</span>
-              <span class="file-card-meta">${size} · ${by}</span>
-              <span class="file-card-time">${time}</span>
-            </div>
-            <div class="file-card-actions">
-              ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
-              <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
-              <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>`;
-        }).join("");
-      } else {
-        list.className = "file-list-view";
-        list.innerHTML = filtered.map(({ name, url, meta, fullPath }) => {
-          const by   = meta.customMetadata?.uploadedBy || "Unknown";
-          const time = timeAgo(new Date(meta.timeCreated).getTime());
-          const size = fmt(meta.size);
-          const prev = isPreviewable(name);
-          const safeUrl  = encodeURI(url);
-          const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-          const safePath = fullPath.replace(/'/g, "\\'");
-          return `
-          <div class="file-row">
-            <i class="ti ${getIcon(name)}" style="color:${getIconColor(name)};font-size:1.3rem;flex-shrink:0" aria-hidden="true"></i>
-            <div class="file-row-info">
-              <span class="file-row-name">${name}</span>
-              <span class="file-row-meta">${size} · ${by} · ${time}</span>
-            </div>
-            <div class="file-row-actions">
-              ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
-              <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
-              <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>`;
-        }).join("");
-      }
-    }
-
-    function onSearch() { renderFiles(document.getElementById("search-input").value.toLowerCase()); }
-    function onSort(val) { sortMode = val; renderFiles(document.getElementById("search-input").value.toLowerCase()); }
-    function toggleView(mode) {
-      viewMode = mode;
-      document.getElementById("btn-grid").classList.toggle("active", mode === "grid");
-      document.getElementById("btn-list").classList.toggle("active", mode === "list");
-      renderFiles(document.getElementById("search-input").value.toLowerCase());
-    }
-
-    /* ── delete ── */
-    async function deleteFile(path, name) {
-      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-      try {
-        await storage.ref(path).delete();
-        showToast("🗑️ " + name + " deleted.");
-        loadFiles();
-      } catch(e) {
-        showToast("Delete failed: " + e.message, "err");
-      }
     }
 
     /* ── preview ── */
@@ -468,7 +588,7 @@
       --radius-sm: 8px;
       --radius: 12px;
       --radius-lg: 18px;
-      --sidebar-w: 230px;
+      --sidebar-w: 240px;
       --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
       --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
     }
@@ -479,17 +599,25 @@
       font-family: "DM Sans", sans-serif;
       background: var(--bg);
       color: var(--ink);
-      min-height: 100vh;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
       font-size: 14px;
       line-height: 1.6;
+      overflow: hidden; /* App handles internal scrolling */
+    }
+
+    #header-placeholder {
+      flex-shrink: 0;
+      z-index: 100;
     }
 
     /* ── LOGIN ── */
     #login-screen {
       display: flex;
+      flex: 1;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
       background: radial-gradient(circle at 20% 30%, rgba(13,92,107,0.08), transparent 50%),
                   radial-gradient(circle at 80% 70%, rgba(217,119,6,0.07), transparent 50%), var(--bg);
     }
@@ -544,50 +672,51 @@
       padding: 13px 28px;
       cursor: pointer;
       transition: background 0.2s, transform 0.15s;
-      letter-spacing: 0.01em;
     }
     .btn-google:hover { background: #0a4a57; transform: translateY(-1px); }
 
     /* ── APP LAYOUT ── */
     #app-screen {
       display: none;
-      min-height: 100vh;
+      flex: 1;
+      overflow: hidden;
     }
 
     /* ── SIDEBAR ── */
     .sidebar {
       width: var(--sidebar-w);
-      min-height: 100vh;
       background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      height: 100%;
       overflow-y: auto;
     }
 
-    .sidebar-logo {
-      padding: 24px 20px 16px;
+    .sidebar-actions {
+      padding: 20px;
       border-bottom: 1px solid var(--border);
     }
-
-    .sidebar-logo .logo-text {
-      font-family: "DM Serif Display", serif;
-      font-size: 1.15rem;
-      color: var(--ink);
-      line-height: 1.2;
+    
+    .btn-primary-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      width: 100%;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 4px 10px rgba(13,92,107,0.2);
     }
-
-    .sidebar-logo .logo-sub {
-      font-size: 0.72rem;
-      color: var(--ink3);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-top: 2px;
-    }
+    .btn-primary-action:hover { background: #0a4a57; transform: translateY(-1px); }
 
     .sidebar-section {
       padding: 16px 12px 8px;
@@ -622,61 +751,25 @@
     .nav-item .ti { font-size: 16px; opacity: 0.75; flex-shrink: 0; }
     .nav-item.active .ti { opacity: 1; }
 
-    .btn-new-folder {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      color: var(--accent);
-      font-size: 0.85rem;
-      font-weight: 600;
-      background: none;
-      border: 1.5px dashed rgba(13,92,107,0.3);
-      width: 100%;
-      transition: background 0.15s, border-color 0.15s;
-      margin-top: 4px;
-      font-family: "DM Sans", sans-serif;
-    }
-    .btn-new-folder:hover { background: var(--accent-light); border-color: var(--accent); }
-
     .sidebar-bottom {
       margin-top: auto;
       padding: 16px;
       border-top: 1px solid var(--border);
     }
 
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
+    .user-chip { display: flex; align-items: center; gap: 10px; }
     #user-avatar {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--accent-light);
-      flex-shrink: 0;
+      width: 34px; height: 34px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--accent-light); flex-shrink: 0;
     }
-
     .user-text { flex: 1; overflow: hidden; }
     .user-text strong { display: block; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .user-text span { font-size: 0.72rem; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
     .btn-signout {
-      background: none;
-      border: none;
-      color: var(--ink3);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-      font-size: 16px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
+      background: none; border: none; color: var(--ink3); cursor: pointer;
+      padding: 4px; border-radius: 6px; transition: color 0.15s, background 0.15s;
+      font-size: 16px; flex-shrink: 0; display: flex; align-items: center;
     }
     .btn-signout:hover { color: var(--danger); background: var(--danger-light); }
 
@@ -687,9 +780,10 @@
       flex-direction: column;
       overflow: hidden;
       min-width: 0;
+      background: var(--surface2);
     }
 
-    /* ── TOP BAR ── */
+    /* ── TOP BAR (BREADCRUMBS & ACTIONS) ── */
     .top-bar {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -701,67 +795,40 @@
     }
 
     #current-folder-title {
-      font-family: "DM Serif Display", serif;
-      font-size: 1.3rem;
+      font-family: "DM Sans", sans-serif;
+      font-size: 1.1rem;
       flex: 1;
-    }
-
-    .search-wrap {
-      position: relative;
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
     }
 
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      color: var(--ink3);
-      font-size: 15px;
-      pointer-events: none;
-    }
+    .crumb-link { cursor: pointer; color: var(--ink3); transition: color 0.15s; }
+    .crumb-link:hover { color: var(--accent); }
+    .crumb-sep { color: var(--border-strong); font-size: 0.8rem; margin: 0 6px; }
+    .crumb-active { color: var(--ink); font-weight: 600; text-transform: capitalize; }
 
+    .search-wrap { position: relative; display: flex; align-items: center; }
+    .search-icon { position: absolute; left: 12px; color: var(--ink3); font-size: 15px; pointer-events: none; }
     .search-input {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 8px 16px 8px 36px;
-      font-family: "DM Sans", sans-serif;
-      font-size: 0.85rem;
-      color: var(--ink);
-      width: 220px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 8px 16px 8px 36px;
+      font-family: "DM Sans", sans-serif; font-size: 0.85rem;
+      color: var(--ink); width: 200px; outline: none; transition: border-color 0.2s;
     }
-    .search-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(13,92,107,0.1);
-    }
+    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(13,92,107,0.1); }
 
     .sort-select {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 7px 28px 7px 12px;
-      font-family: "DM Sans", sans-serif;
-      font-size: 0.82rem;
-      color: var(--ink2);
-      cursor: pointer;
-      outline: none;
-      appearance: auto;
-      transition: border-color 0.2s;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 7px 28px 7px 12px;
+      font-family: "DM Sans", sans-serif; font-size: 0.82rem;
+      color: var(--ink2); cursor: pointer; outline: none; appearance: auto;
     }
-    .sort-select:focus { border-color: var(--accent); }
 
     .view-toggle { display: flex; gap: 2px; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; border: 1px solid var(--border); }
     .btn-view {
-      background: none;
-      border: none;
-      color: var(--ink3);
-      cursor: pointer;
-      padding: 5px 8px;
-      border-radius: 6px;
-      font-size: 15px;
-      transition: background 0.15s, color 0.15s;
+      background: none; border: none; color: var(--ink3); cursor: pointer;
+      padding: 5px 8px; border-radius: 6px; font-size: 15px; transition: background 0.15s, color 0.15s;
     }
     .btn-view.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
@@ -770,180 +837,15 @@
       flex: 1;
       overflow-y: auto;
       padding: 24px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
     }
 
-    /* ── UPLOAD ZONE ── */
-    .upload-card {
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .upload-card-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .upload-card-header .ti { color: var(--accent); font-size: 16px; }
-
-    #drop-zone {
-      padding: 32px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      background: repeating-linear-gradient(
-        -45deg, transparent, transparent 8px,
-        rgba(13,92,107,0.025) 8px, rgba(13,92,107,0.025) 16px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    #drop-zone.drag-over {
-      background: var(--accent-light);
-    }
-
-    #drop-zone .drop-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 52px; height: 52px;
-      background: var(--accent-light);
-      border-radius: 14px;
-      margin-bottom: 12px;
-      font-size: 22px;
-      color: var(--accent);
-      transition: transform 0.2s;
-    }
-
-    #drop-zone:hover .drop-icon, #drop-zone.drag-over .drop-icon { transform: scale(1.08); }
-
-    .drop-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
-    .drop-sub { color: var(--ink3); font-size: 0.82rem; }
-
-    .btn-choose {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      padding: 9px 20px;
-      font-family: "DM Sans", sans-serif;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      margin-top: 14px;
-      transition: background 0.15s, transform 0.15s;
-    }
-    .btn-choose:hover { background: #0a4a57; transform: translateY(-1px); }
-
-    #file-input { display: none; }
-
-    /* ── FILE QUEUE ── */
-    #file-queue {
-      padding: 0 16px;
-      max-height: 220px;
-      overflow-y: auto;
-    }
-
-    .queue-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 4px;
-      border-bottom: 1px solid var(--border);
-    }
-    .queue-item:last-child { border-bottom: none; }
-
-    .queue-info { flex: 1; overflow: hidden; }
-    .queue-name { display: block; font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .queue-size { font-size: 0.75rem; color: var(--ink3); }
-
-    .queue-remove {
-      background: none;
-      border: none;
-      color: var(--ink3);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 6px;
-      font-size: 14px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .queue-remove:hover { color: var(--danger); background: var(--danger-light); }
-
-    /* ── UPLOAD ACTIONS ── */
-    #upload-actions {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--border);
-    }
-
-    .btn-upload-all {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      padding: 9px 22px;
-      font-family: "DM Sans", sans-serif;
-      font-weight: 600;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-upload-all:hover { background: #0a4a57; }
-
-    .btn-clear {
-      background: none;
-      border: 1px solid var(--border-strong);
-      border-radius: 999px;
-      padding: 9px 18px;
-      font-family: "DM Sans", sans-serif;
-      font-size: 0.85rem;
-      color: var(--ink2);
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-clear:hover { background: var(--surface2); }
-
-    /* ── PROGRESS ── */
-    #progress-wrap { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px; }
-
-    .prog-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--accent-light);
-      border-radius: var(--radius-sm);
-      padding: 9px 12px;
-      font-size: 0.82rem;
-    }
-    .prog-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; }
-    .prog-track { width: 100px; height: 5px; background: rgba(13,92,107,0.15); border-radius: 99px; overflow: hidden; flex-shrink: 0; }
-    .prog-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.2s; }
-    .prog-pct { font-size: 0.75rem; color: var(--accent); min-width: 30px; text-align: right; font-weight: 600; }
-
-    /* ── FILES CARD ── */
     .files-card {
       background: var(--surface);
       border-radius: var(--radius-lg);
       border: 1px solid var(--border);
       box-shadow: var(--shadow);
       overflow: hidden;
+      min-height: 60vh;
     }
 
     .files-card-header {
@@ -959,14 +861,27 @@
       font-weight: 400;
       flex: 1;
     }
-    .file-count {
-      font-size: 0.78rem;
-      color: var(--ink3);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      padding: 3px 10px;
-      border-radius: 999px;
+    
+    .btn-new-subfolder {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--accent);
+      background: var(--accent-light);
+      font-size: 0.8rem;
       font-weight: 600;
+      border: none;
+      transition: background 0.15s;
+    }
+    .btn-new-subfolder:hover { background: rgba(13,92,107,0.15); }
+
+    .file-count {
+      font-size: 0.78rem; color: var(--ink3);
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 999px; font-weight: 600;
     }
 
     /* ── GRID VIEW ── */
@@ -985,9 +900,12 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      transition: box-shadow 0.15s, transform 0.15s;
+      transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
     }
-    .file-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+    .file-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: var(--accent-mid); }
+    
+    .folder-card { cursor: pointer; }
+    .folder-card:hover { background: var(--accent-light); }
 
     .file-card-icon {
       width: 48px; height: 48px;
@@ -999,35 +917,26 @@
 
     .file-card-body { flex: 1; }
     .file-card-name {
-      display: block;
-      font-size: 0.83rem;
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-bottom: 4px;
+      display: block; font-size: 0.83rem; font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px;
     }
     .file-card-meta { display: block; font-size: 0.72rem; color: var(--ink3); }
     .file-card-time { display: block; font-size: 0.7rem; color: var(--ink3); }
 
     .file-card-actions {
-      display: flex;
-      gap: 4px;
-      padding-top: 8px;
-      border-top: 1px solid var(--border);
+      display: flex; gap: 4px; padding-top: 8px; border-top: 1px solid var(--border);
     }
 
     /* ── LIST VIEW ── */
     .file-list-view { padding: 8px 0; }
 
     .file-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 11px 20px;
-      transition: background 0.12s;
+      display: flex; align-items: center; gap: 12px; padding: 11px 20px; transition: background 0.12s; border-bottom: 1px solid var(--surface2);
     }
     .file-row:hover { background: var(--surface2); }
+    
+    .folder-row { cursor: pointer; }
+    .folder-row:hover { background: var(--accent-light); }
 
     .file-row-info { flex: 1; overflow: hidden; }
     .file-row-name { display: block; font-size: 0.88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1037,31 +946,18 @@
 
     /* ── SHARED BUTTONS ── */
     .btn-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px; height: 32px;
-      border-radius: var(--radius-sm);
-      border: none;
-      background: none;
-      color: var(--ink3);
-      cursor: pointer;
-      font-size: 15px;
-      text-decoration: none;
-      transition: background 0.15s, color 0.15s;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: var(--radius-sm); border: none;
+      background: none; color: var(--ink3); cursor: pointer; font-size: 15px;
+      text-decoration: none; transition: background 0.15s, color 0.15s;
     }
-    .btn-icon:hover { background: var(--surface2); color: var(--ink); }
+    .btn-icon:hover { background: var(--border); color: var(--ink); }
     .btn-icon.btn-del:hover { background: var(--danger-light); color: var(--danger); }
 
     /* ── EMPTY / LOADING ── */
     .empty-state, .loading-state {
-      text-align: center;
-      padding: 48px 24px;
-      color: var(--ink3);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
+      text-align: center; padding: 48px 24px; color: var(--ink3);
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
     .empty-state.err { color: var(--ink2); }
     .loading-state { flex-direction: row; justify-content: center; gap: 8px; }
@@ -1069,208 +965,126 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; display: inline-block; }
 
-    /* ── MODAL: NEW FOLDER ── */
-    #modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
+    /* ── MODALS (Upload & Folder) ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 2000;
+      align-items: center; justify-content: center; backdrop-filter: blur(4px);
     }
 
-    .modal {
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      padding: 28px;
-      width: 380px;
-      max-width: 90vw;
-      box-shadow: var(--shadow-lg);
+    .modal-card {
+      background: var(--surface); border-radius: var(--radius-lg);
+      padding: 28px; box-shadow: var(--shadow-lg); width: 90vw; max-width: 400px;
     }
+    
+    .modal-card.large { max-width: 600px; padding: 0; }
 
-    .modal h3 {
-      font-family: "DM Serif Display", serif;
-      font-size: 1.2rem;
-      margin-bottom: 6px;
-    }
-
-    .modal p { color: var(--ink3); font-size: 0.85rem; margin-bottom: 18px; }
+    .modal-card h3 { font-family: "DM Serif Display", serif; font-size: 1.2rem; margin-bottom: 6px; }
+    .modal-card p { color: var(--ink3); font-size: 0.85rem; margin-bottom: 18px; }
 
     .modal-input {
-      width: 100%;
-      background: var(--surface2);
-      border: 1.5px solid var(--border-strong);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-family: "DM Sans", sans-serif;
-      font-size: 0.9rem;
-      color: var(--ink);
-      outline: none;
-      margin-bottom: 16px;
-      transition: border-color 0.2s;
+      width: 100%; background: var(--surface2); border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-sm); padding: 10px 14px; font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem; color: var(--ink); outline: none; margin-bottom: 16px; transition: border-color 0.2s;
     }
     .modal-input:focus { border-color: var(--accent); }
-
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
-    .btn-modal-cancel {
-      background: none;
-      border: 1px solid var(--border-strong);
-      border-radius: 999px;
-      padding: 9px 20px;
-      font-family: "DM Sans", sans-serif;
-      font-size: 0.85rem;
-      color: var(--ink2);
-      cursor: pointer;
-      transition: background 0.15s;
+    .btn-outline {
+      background: none; border: 1px solid var(--border-strong); border-radius: 999px;
+      padding: 9px 20px; font-family: "DM Sans", sans-serif; font-size: 0.85rem;
+      color: var(--ink2); cursor: pointer; transition: background 0.15s;
     }
-    .btn-modal-cancel:hover { background: var(--surface2); }
+    .btn-outline:hover { background: var(--surface2); }
+    
+    .btn-fill {
+      background: var(--accent); color: #fff; border: none; border-radius: 999px;
+      padding: 9px 22px; font-family: "DM Sans", sans-serif; font-weight: 600;
+      font-size: 0.85rem; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-fill:hover { background: #0a4a57; }
 
-    .btn-modal-create {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      padding: 9px 22px;
-      font-family: "DM Sans", sans-serif;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: background 0.15s;
+    /* UPLOAD SPECIFIC */
+    .upload-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;
     }
-    .btn-modal-create:hover { background: #0a4a57; }
+    .upload-header h3 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 1.1rem; }
+    .btn-close { background: none; border: none; font-size: 20px; color: var(--ink3); cursor: pointer; }
+
+    #drop-zone {
+      padding: 40px 24px; text-align: center; cursor: pointer; transition: background 0.2s;
+      background: repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(13,92,107,0.025) 8px, rgba(13,92,107,0.025) 16px);
+      border-bottom: 1px solid var(--border);
+    }
+    #drop-zone.drag-over { background: var(--accent-light); }
+    .drop-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 60px; height: 60px; background: var(--surface); box-shadow: var(--shadow);
+      border-radius: 50%; margin-bottom: 16px; font-size: 26px; color: var(--accent);
+    }
+    .drop-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 6px; }
+    .drop-sub { color: var(--ink3); font-size: 0.9rem; }
+
+    #file-queue { max-height: 200px; overflow-y: auto; padding: 0 16px; }
+    .queue-item { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--border); }
+    .queue-item:last-child { border-bottom: none; }
+    .queue-info { flex: 1; overflow: hidden; }
+    .queue-name { display: block; font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue-size { font-size: 0.75rem; color: var(--ink3); }
+    .queue-remove { background: none; border: none; color: var(--ink3); cursor: pointer; padding: 4px; font-size: 16px; }
+    .queue-remove:hover { color: var(--danger); }
+
+    #upload-actions { display: none; padding: 16px 24px; background: var(--surface2); border-top: 1px solid var(--border); justify-content: flex-end; gap: 12px; }
+    #progress-wrap { display: flex; flex-direction: column; gap: 6px; padding: 10px 24px; }
+    .prog-bar { display: flex; align-items: center; gap: 10px; background: var(--surface2); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 0.82rem; }
+    .prog-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prog-track { width: 100px; height: 6px; background: rgba(13,92,107,0.15); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.2s; }
+    .prog-pct { font-size: 0.75rem; color: var(--accent); min-width: 35px; text-align: right; font-weight: 600; }
 
     /* ── PREVIEW MODAL ── */
     #preview-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      z-index: 3000; align-items: center; justify-content: center; padding: 20px;
     }
-
     .preview-container {
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      width: 100%;
-      max-width: 900px;
-      max-height: 92vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
+      background: var(--surface); border-radius: var(--radius-lg); width: 100%;
+      max-width: 1000px; height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
     }
-
     .preview-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-
-    #preview-title {
-      flex: 1;
-      font-weight: 600;
-      font-size: 0.9rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .preview-dl-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--accent);
-      color: #fff;
-      text-decoration: none;
-      border-radius: 999px;
-      padding: 7px 16px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      transition: background 0.15s;
-    }
-    .preview-dl-btn:hover { background: #0a4a57; }
-
-    .btn-close-preview {
-      background: none;
-      border: none;
-      color: var(--ink3);
-      cursor: pointer;
-      padding: 6px;
-      border-radius: var(--radius-sm);
-      font-size: 18px;
-      transition: background 0.15s, color 0.15s;
-    }
-    .btn-close-preview:hover { background: var(--danger-light); color: var(--danger); }
-
-    #preview-body {
-      flex: 1;
-      overflow: auto;
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
+    #preview-title { flex: 1; font-weight: 600; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #preview-body { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--surface2); }
     .text-preview {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      font-family: "DM Mono", "Courier New", monospace;
-      font-size: 0.82rem;
-      line-height: 1.7;
-      width: 100%;
-      max-height: 65vh;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      color: var(--ink);
+      background: var(--surface); padding: 24px; font-family: "DM Mono", monospace; font-size: 0.85rem; line-height: 1.7;
+      width: 100%; height: 100%; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--ink);
     }
-
-    .text-preview-loading { color: var(--ink3); display: flex; gap: 8px; align-items: center; }
 
     /* ── TOAST ── */
     .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(60px);
-      background: var(--ink);
-      color: #fff;
-      padding: 10px 22px;
-      border-radius: 999px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      opacity: 0;
-      transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
-      z-index: 9999;
-      white-space: nowrap;
-      pointer-events: none;
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: var(--ink); color: #fff; padding: 10px 22px; border-radius: 999px; font-size: 0.88rem; font-weight: 500;
+      opacity: 0; transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1); z-index: 9999; pointer-events: none;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.err  { background: var(--danger); }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 700px) {
+    @media (max-width: 768px) {
       .sidebar { display: none; }
       .content-area { padding: 14px; }
-      .top-bar { padding: 12px 14px; }
+      .top-bar { padding: 12px 14px; flex-wrap: wrap; }
+      .search-wrap { width: 100%; order: 3; margin-top: 10px; }
+      .search-input { width: 100%; }
       .file-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 
 <body>
+<div id="header-placeholder"></div>
 
-<!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo"><i class="ti ti-files" aria-hidden="true"></i></div>
@@ -1288,23 +1102,18 @@
   </div>
 </div>
 
-<!-- APP SCREEN -->
 <div id="app-screen">
-
-  <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-text">URAM-IITD</div>
-      <div class="logo-sub">Team File Hub</div>
+    <div class="sidebar-actions">
+      <button class="btn-primary-action" onclick="openUploadModal()">
+        <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+        Upload Files
+      </button>
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Folders</div>
+      <div class="sidebar-section-label">Root Directories</div>
       <div id="folder-nav"></div>
-      <button class="btn-new-folder" onclick="openNewFolderModal()">
-        <i class="ti ti-folder-plus" aria-hidden="true"></i>
-        New Folder
-      </button>
     </div>
 
     <div class="sidebar-bottom">
@@ -1321,114 +1130,90 @@
     </div>
   </div>
 
-  <!-- MAIN -->
   <div class="main">
-
-    <!-- TOP BAR -->
     <div class="top-bar">
-      <span id="current-folder-title">General</span>
+      <div id="current-folder-title">General</div>
       <div class="search-wrap">
         <i class="ti ti-search search-icon" aria-hidden="true"></i>
-        <input class="search-input" id="search-input" type="search"
-               placeholder="Search files…" oninput="onSearch()" aria-label="Search files"/>
+        <input class="search-input" id="search-input" type="search" placeholder="Search this folder…" oninput="onSearch()" aria-label="Search files"/>
       </div>
       <select class="sort-select" onchange="onSort(this.value)" aria-label="Sort files">
+        <option value="name">Name A–Z</option>
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
-        <option value="name">Name A–Z</option>
         <option value="size">Largest first</option>
       </select>
       <div class="view-toggle">
-        <button class="btn-view active" id="btn-grid" onclick="toggleView('grid')" title="Grid view" aria-label="Grid view">
-          <i class="ti ti-layout-grid"></i>
-        </button>
-        <button class="btn-view" id="btn-list" onclick="toggleView('list')" title="List view" aria-label="List view">
-          <i class="ti ti-list"></i>
-        </button>
+        <button class="btn-view active" id="btn-grid" onclick="toggleView('grid')" title="Grid view"><i class="ti ti-layout-grid"></i></button>
+        <button class="btn-view" id="btn-list" onclick="toggleView('list')" title="List view"><i class="ti ti-list"></i></button>
       </div>
     </div>
 
-    <!-- CONTENT -->
     <div class="content-area">
-
-      <!-- UPLOAD CARD -->
-      <div class="upload-card">
-        <div class="upload-card-header">
-          <i class="ti ti-cloud-upload" aria-hidden="true"></i>
-          Upload Files
-        </div>
-
-        <div id="drop-zone"
-             ondrop="handleDrop(event)"
-             ondragover="handleDragOver(event)"
-             ondragleave="handleDragLeave()"
-             onclick="document.getElementById('file-input').click()">
-          <div class="drop-icon"><i class="ti ti-cloud-upload" aria-hidden="true"></i></div>
-          <div class="drop-title">Drag & drop files here</div>
-          <div class="drop-sub">or click anywhere in this area to browse</div>
-          <button class="btn-choose"
-                  onclick="event.stopPropagation(); document.getElementById('file-input').click()">
-            <i class="ti ti-plus" aria-hidden="true"></i>
-            Choose Files
-          </button>
-          <input type="file" id="file-input" multiple onchange="handleFileSelect()"/>
-        </div>
-
-        <div id="file-queue"></div>
-        <div id="progress-wrap"></div>
-
-        <div id="upload-actions">
-          <button class="btn-upload-all" onclick="uploadAll()">
-            <i class="ti ti-upload" aria-hidden="true"></i>
-            Upload All
-          </button>
-          <button class="btn-clear" onclick="clearQueue()">Clear</button>
-        </div>
-      </div>
-
-      <!-- FILES CARD -->
       <div class="files-card">
         <div class="files-card-header">
-          <h2>Files</h2>
+          <h2>Items</h2>
+          <button class="btn-new-subfolder" onclick="openNewFolderModal()">
+            <i class="ti ti-folder-plus"></i> New Folder Here
+          </button>
           <span class="file-count" id="file-count">—</span>
         </div>
         <div id="file-list">
           <div class="empty-state">Sign in to view files.</div>
         </div>
       </div>
-
-    </div><!-- /content-area -->
-  </div><!-- /main -->
-</div><!-- /app-screen -->
-
-<!-- NEW FOLDER MODAL -->
-<div id="modal-overlay" onclick="if(event.target===this)closeNewFolderModal()">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <h3 id="modal-title">Create New Folder</h3>
-    <p>Give your folder a name. Use lowercase letters, numbers, and hyphens only.</p>
-    <input class="modal-input" id="new-folder-input" type="text"
-           placeholder="e.g. meeting-notes"
-           onkeydown="if(event.key==='Enter')createFolder(); if(event.key==='Escape')closeNewFolderModal()"/>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeNewFolderModal()">Cancel</button>
-      <button class="btn-modal-create" onclick="createFolder()">
-        <i class="ti ti-folder-plus" aria-hidden="true"></i>
-        Create
-      </button>
     </div>
   </div>
 </div>
 
-<!-- PREVIEW MODAL -->
+<div id="upload-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeUploadModal()">
+  <div class="modal-card large">
+    <div class="upload-header">
+      <h3><i class="ti ti-cloud-upload" style="color:var(--accent)"></i> Upload to current folder</h3>
+      <button class="btn-close" onclick="closeUploadModal()"><i class="ti ti-x"></i></button>
+    </div>
+    
+    <div id="drop-zone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave()" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon"><i class="ti ti-cloud-upload" aria-hidden="true"></i></div>
+      <div class="drop-title">Drag & drop files here</div>
+      <div class="drop-sub">or click anywhere in this area to browse</div>
+      <button class="btn-outline" style="margin-top:20px" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+        <i class="ti ti-file-search" aria-hidden="true"></i> Browse Files
+      </button>
+      <input type="file" id="file-input" multiple style="display:none" onchange="handleFileSelect()"/>
+    </div>
+
+    <div id="file-queue"></div>
+    <div id="progress-wrap"></div>
+
+    <div id="upload-actions">
+      <button class="btn-outline" onclick="clearQueue()">Clear Queue</button>
+      <button class="btn-fill" onclick="uploadAll()"><i class="ti ti-upload"></i> Start Upload</button>
+    </div>
+  </div>
+</div>
+
+<div id="folder-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeNewFolderModal()">
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <h3>Create New Folder</h3>
+    <p>Give your folder a name. Use lowercase letters, numbers, and hyphens only.</p>
+    <input class="modal-input" id="new-folder-input" type="text" placeholder="e.g. 2026-data-set" onkeydown="if(event.key==='Enter')createFolder(); if(event.key==='Escape')closeNewFolderModal()"/>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeNewFolderModal()">Cancel</button>
+      <button class="btn-fill" onclick="createFolder()"><i class="ti ti-folder-plus"></i> Create</button>
+    </div>
+  </div>
+</div>
+
 <div id="preview-modal" onclick="if(event.target===this)closePreview()">
   <div class="preview-container" role="dialog" aria-modal="true" aria-label="File preview">
     <div class="preview-header">
-      <i class="ti ti-eye" style="color:var(--ink3);font-size:16px;flex-shrink:0" aria-hidden="true"></i>
+      <i class="ti ti-eye" style="color:var(--ink3);font-size:18px;flex-shrink:0" aria-hidden="true"></i>
       <span id="preview-title"></span>
-      <a class="preview-dl-btn" id="preview-download" href="#" download target="_blank">
+      <a class="btn-fill" id="preview-download" href="#" download target="_blank" style="padding: 7px 16px;">
         <i class="ti ti-download" aria-hidden="true"></i> Download
       </a>
-      <button class="btn-close-preview" onclick="closePreview()" aria-label="Close preview">
+      <button class="btn-icon" onclick="closePreview()" aria-label="Close preview" style="font-size:22px">
         <i class="ti ti-x"></i>
       </button>
     </div>
