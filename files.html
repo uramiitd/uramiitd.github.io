@@ -13,6 +13,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -101,6 +102,7 @@
     let currentPath = "general";
     let viewMode = "grid"; 
     let allItems = [];
+    let selectedItems = new Map(); // fullPath → {name, isFolder, url, fullPath}
 
     /* ── sidebar & paths ── */
     const defaultFolders = ["general","data","reports","presentations","papers"];
@@ -126,7 +128,7 @@
       const isDefault = defaultFolders.includes(name);
       
       const labels = {
-        general:"General", data:"Datasets", reports:"Reports",
+        general:"General", data:"Data & Datasets", reports:"Reports",
         presentations:"Presentations", papers:"Papers & Publications"
       };
       const icons = {
@@ -151,7 +153,7 @@
 
     function setPath(path) {
       currentPath = path;
-      
+      clearSelection();
       const rootFolder = path.split('/')[0];
       document.querySelectorAll(".nav-item").forEach(el => {
         el.classList.toggle("active", el.id === "sidebar-" + rootFolder);
@@ -303,10 +305,17 @@
         const { isFolder, name, url, meta, fullPath } = item;
         const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
         const safePath = fullPath.replace(/'/g, "\\'");
-        
+        const safeUrl  = (url || "").replace(/'/g, "\\'");
+        const isSel    = selectedItems.has(fullPath);
+        const chk      = `<label class="card-checkbox" onclick="event.stopPropagation()">
+                            <input type="checkbox" ${isSel ? "checked" : ""}
+                              onchange="toggleSelect('${safePath}','${safeName}',${isFolder},'${safeUrl}')">
+                          </label>`;
+
         if (isFolder) {
           return `
-          <div class="file-card folder-card" onclick="setPath('${safePath}')">
+          <div class="file-card folder-card${isSel ? " selected" : ""}" onclick="setPath('${safePath}')">
+            ${chk}
             <div class="file-card-icon" style="background:${getIconColor(name, true)}18">
               <i class="ti ${getIcon(name, true)}" style="color:${getIconColor(name, true)};font-size:2.2rem" aria-hidden="true"></i>
             </div>
@@ -320,13 +329,14 @@
           </div>`;
         }
 
-        const by = meta.customMetadata?.uploadedBy || "Unknown";
+        const by   = meta.customMetadata?.uploadedBy || "Unknown";
         const time = timeAgo(new Date(meta.timeCreated).getTime());
         const size = fmt(meta.size);
         const prev = isPreviewable(name);
-        
+
         return `
-        <div class="file-card">
+        <div class="file-card${isSel ? " selected" : ""}">
+          ${chk}
           <div class="file-card-icon" style="background:${getIconColor(name, false)}18">
             <i class="ti ${getIcon(name, false)}" style="color:${getIconColor(name, false)};font-size:2rem" aria-hidden="true"></i>
           </div>
@@ -336,8 +346,8 @@
             <span class="file-card-time">${time}</span>
           </div>
           <div class="file-card-actions">
-            ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${url}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
-            <a class="btn-icon" href="${url}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+            ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
+            <button class="btn-icon" title="Download" onclick="downloadFile('${safeUrl}','${safeName}')"><i class="ti ti-download"></i></button>
             <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
           </div>
         </div>`;
@@ -347,10 +357,17 @@
         const { isFolder, name, url, meta, fullPath } = item;
         const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
         const safePath = fullPath.replace(/'/g, "\\'");
+        const safeUrl  = (url || "").replace(/'/g, "\\'");
+        const isSel    = selectedItems.has(fullPath);
+        const chk      = `<label class="row-checkbox" onclick="event.stopPropagation()">
+                            <input type="checkbox" ${isSel ? "checked" : ""}
+                              onchange="toggleSelect('${safePath}','${safeName}',${isFolder},'${safeUrl}')">
+                          </label>`;
 
         if (isFolder) {
           return `
-          <div class="file-row folder-row" onclick="setPath('${safePath}')">
+          <div class="file-row folder-row${isSel ? " selected" : ""}" onclick="setPath('${safePath}')">
+            ${chk}
             <i class="ti ${getIcon(name, true)}" style="color:${getIconColor(name, true)};font-size:1.5rem;flex-shrink:0" aria-hidden="true"></i>
             <div class="file-row-info">
               <span class="file-row-name">${name}</span>
@@ -362,21 +379,22 @@
           </div>`;
         }
 
-        const by = meta.customMetadata?.uploadedBy || "Unknown";
+        const by   = meta.customMetadata?.uploadedBy || "Unknown";
         const time = timeAgo(new Date(meta.timeCreated).getTime());
         const size = fmt(meta.size);
         const prev = isPreviewable(name);
-        
+
         return `
-        <div class="file-row">
+        <div class="file-row${isSel ? " selected" : ""}">
+          ${chk}
           <i class="ti ${getIcon(name, false)}" style="color:${getIconColor(name, false)};font-size:1.3rem;flex-shrink:0" aria-hidden="true"></i>
           <div class="file-row-info">
             <span class="file-row-name">${name}</span>
             <span class="file-row-meta">${size} · ${by} · ${time}</span>
           </div>
           <div class="file-row-actions">
-            ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${url}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
-            <a class="btn-icon" href="${url}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+            ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
+            <button class="btn-icon" title="Download" onclick="downloadFile('${safeUrl}','${safeName}')"><i class="ti ti-download"></i></button>
             <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
           </div>
         </div>`;
@@ -603,6 +621,152 @@
 
     function escapeHtml(str) {
       return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    /* ── single-file download via fetch+blob ──
+       Fixes HTML files and any file the browser would render instead of save. ── */
+    async function downloadFile(url, name) {
+      showToast("⬇️ Downloading " + name + "…");
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+      } catch(e) {
+        showToast("Download failed: " + e.message, "err");
+      }
+    }
+
+    /* ── multi-select ── */
+    function toggleSelect(fullPath, name, isFolder, url) {
+      if (selectedItems.has(fullPath)) {
+        selectedItems.delete(fullPath);
+      } else {
+        selectedItems.set(fullPath, { fullPath, name, isFolder, url });
+      }
+      updateSelectionBar();
+      // Re-render to reflect checked state without full reload
+      renderFiles((document.getElementById("search-input")?.value || "").toLowerCase());
+    }
+
+    function clearSelection() {
+      selectedItems.clear();
+      updateSelectionBar();
+    }
+
+    function selectAll() {
+      allItems.forEach(item => {
+        selectedItems.set(item.fullPath, {
+          fullPath: item.fullPath, name: item.name,
+          isFolder: item.isFolder, url: item.url || ""
+        });
+      });
+      updateSelectionBar();
+      renderFiles((document.getElementById("search-input")?.value || "").toLowerCase());
+    }
+
+    function updateSelectionBar() {
+      const bar = document.getElementById("selection-bar");
+      const count = selectedItems.size;
+      if (count > 0) {
+        document.getElementById("sel-count").textContent = count + " selected";
+        bar.classList.add("show");
+      } else {
+        bar.classList.remove("show");
+      }
+    }
+
+    /* ── bulk download as ZIP ── */
+    async function downloadSelected() {
+      if (selectedItems.size === 0) return;
+
+      // Single file → direct download (no zip needed)
+      if (selectedItems.size === 1) {
+        const item = [...selectedItems.values()][0];
+        if (!item.isFolder && item.url) {
+          await downloadFile(item.url, item.name);
+          return;
+        }
+      }
+
+      const zipName = selectedItems.size === 1
+        ? [...selectedItems.values()][0].name + ".zip"
+        : "download-" + new Date().toISOString().slice(0,10) + ".zip";
+
+      showToast("📦 Building zip…");
+      const zip = new JSZip();
+      let fileCount = 0;
+
+      async function addFolderToZip(zipDir, storagePath) {
+        const res = await storage.ref(storagePath).listAll();
+        for (const fileRef of res.items) {
+          if (fileRef.name === ".keep") continue;
+          const fileUrl = await fileRef.getDownloadURL();
+          const resp = await fetch(fileUrl);
+          const blob = await resp.blob();
+          zipDir.file(fileRef.name, blob);
+          fileCount++;
+          showToast("📦 Fetching file " + fileCount + "…");
+        }
+        for (const folderRef of res.prefixes) {
+          await addFolderToZip(zipDir.folder(folderRef.name), folderRef.fullPath);
+        }
+      }
+
+      try {
+        for (const [, item] of selectedItems) {
+          if (item.isFolder) {
+            await addFolderToZip(zip.folder(item.name), item.fullPath);
+          } else {
+            const resp = await fetch(item.url);
+            const blob = await resp.blob();
+            zip.file(item.name, blob);
+            fileCount++;
+          }
+        }
+        showToast("⚙️ Compressing " + fileCount + " files…");
+        const content = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+        const blobUrl = URL.createObjectURL(content);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = zipName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+        showToast("✓ Downloaded " + fileCount + " files as " + zipName);
+        clearSelection();
+      } catch(e) {
+        showToast("Zip failed: " + e.message, "err");
+      }
+    }
+
+    /* ── bulk delete ── */
+    async function deleteSelected() {
+      const count = selectedItems.size;
+      if (!count || !confirm(`Delete ${count} item(s)? This cannot be undone.`)) return;
+
+      try {
+        for (const [, item] of selectedItems) {
+          if (item.isFolder) {
+            await deleteFolderRecursive(storage.ref(item.fullPath));
+          } else {
+            await storage.ref(item.fullPath).delete();
+          }
+        }
+        showToast(`🗑️ ${count} item(s) deleted.`);
+        clearSelection();
+        loadFiles();
+      } catch(e) {
+        showToast("Delete failed: " + e.message, "err");
+      }
     }
 
     /* ── toast ── */
@@ -916,6 +1080,60 @@
       .search-input { width: 100%; }
       .file-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ── CARD CHECKBOX ── */
+    .file-card { position: relative; }
+    .card-checkbox {
+      position: absolute; top: 8px; left: 8px; z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px;
+      opacity: 0; transition: opacity 0.15s; cursor: pointer;
+    }
+    .file-card:hover .card-checkbox,
+    .file-card.selected .card-checkbox { opacity: 1; }
+    .card-checkbox input[type=checkbox],
+    .row-checkbox input[type=checkbox] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);
+    }
+    .file-card.selected {
+      outline: 2px solid var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* ── ROW CHECKBOX ── */
+    .row-checkbox {
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; margin-right: 2px;
+      opacity: 0; transition: opacity 0.15s; cursor: pointer;
+    }
+    .file-row:hover .row-checkbox,
+    .file-row.selected .row-checkbox { opacity: 1; }
+    .file-row.selected { background: var(--accent-light); }
+
+    /* ── SELECTION BAR ── */
+    .selection-bar {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: var(--ink); color: #fff;
+      padding: 8px 8px 8px 20px;
+      border-radius: 999px;
+      display: flex; align-items: center; gap: 8px;
+      z-index: 6000; box-shadow: var(--shadow-lg);
+      transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+    }
+    .selection-bar.show { transform: translateX(-50%) translateY(0); }
+    .sel-count { font-size: 0.85rem; font-weight: 600; margin-right: 4px; }
+    .btn-sel {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px; border: none;
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; transition: opacity 0.15s;
+    }
+    .btn-sel:hover { opacity: 0.85; }
+    .btn-sel-download { background: var(--accent); color: #fff; }
+    .btn-sel-delete   { background: var(--danger); color: #fff; }
+    .btn-sel-clear    { background: rgba(255,255,255,0.15); color: #fff; }
   </style>
 </head>
 
@@ -997,6 +1215,9 @@
           <button class="btn-new-subfolder" onclick="openNewFolderModal()">
             <i class="ti ti-folder-plus"></i> New Folder Here
           </button>
+          <button class="btn-new-subfolder" onclick="selectAll()" style="margin-left:4px">
+            <i class="ti ti-checks"></i> Select All
+          </button>
           <span class="file-count" id="file-count">—</span>
         </div>
         <div id="file-list">
@@ -1058,6 +1279,20 @@
     </div>
     <div id="preview-body"></div>
   </div>
+</div>
+
+<!-- SELECTION BAR -->
+<div class="selection-bar" id="selection-bar">
+  <span class="sel-count" id="sel-count">0 selected</span>
+  <button class="btn-sel btn-sel-download" onclick="downloadSelected()">
+    <i class="ti ti-download"></i> Download
+  </button>
+  <button class="btn-sel btn-sel-delete" onclick="deleteSelected()">
+    <i class="ti ti-trash"></i> Delete
+  </button>
+  <button class="btn-sel btn-sel-clear" onclick="clearSelection()">
+    <i class="ti ti-x"></i> Clear
+  </button>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
