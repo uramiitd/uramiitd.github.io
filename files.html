@@ -584,17 +584,13 @@
       if (["jpg","jpeg","png","gif","webp","svg"].includes(e)) {
         body.innerHTML = `<img src="${url}" alt="${name}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:8px"/>`;
       } else if (e === "pdf") {
-        // Google Docs Viewer proxies the PDF server-side — no CORS or X-Frame-Options issues
-        const viewerUrl = "https://docs.google.com/viewer?embedded=true&url=" + encodeURIComponent(url);
-        body.innerHTML = `<iframe src="${viewerUrl}" style="width:100%;height:75vh;border:none;border-radius:8px"
-          onload="this.style.background='transparent'"
-          onerror="this.outerHTML='<div style=\\'text-align:center;padding:32px\\'><p style=\\'color:#e74c3c;font-weight:600\\'>Could not load preview</p></div>'">
-        </iframe>`;
+        // Firebase Storage does NOT set X-Frame-Options, so the URL loads directly in an iframe
+        body.innerHTML = `<iframe src="${url}" style="width:100%;height:75vh;border:none;border-radius:8px"></iframe>`;
       } else if (["mp4","mov"].includes(e)) {
         body.innerHTML = `<video src="${url}" controls style="max-width:100%;max-height:75vh;border-radius:8px"></video>`;
       } else if (["txt","md","csv"].includes(e)) {
-        // Text fetch requires CORS to be configured on Firebase Storage.
-        // If it fails, offer a download link instead.
+        // Text preview requires CORS to be enabled on the Firebase Storage bucket.
+        // Without it, fetch() is blocked. Show a helpful fallback.
         fetch(url).then(r => {
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.text();
@@ -606,10 +602,10 @@
             <p style="font-weight:600;margin-bottom:6px">Text preview unavailable</p>
             <p style="color:var(--ink2);font-size:0.88rem;max-width:360px;margin:0 auto 18px">
               Firebase Storage CORS policy blocks in-browser text fetch.<br>
-              Download the file to view it locally.
+              Open the file in a new tab to view it.
             </p>
             <button class="btn-fill" onclick="downloadFile('${url.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
-              <i class="ti ti-download"></i> Download to View
+              <i class="ti ti-external-link"></i> Open File
             </button></div>`;
         });
       }
@@ -625,20 +621,12 @@
       return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
 
-    /* ── download: append response-content-disposition so the server forces a download
-           without needing fetch() or CORS configuration on Firebase Storage ── */
+    /* ── download: open Firebase URL directly in a new tab.
+       Non-previewable files (zip, docx, xlsx…) are automatically downloaded by the browser.
+       Previewable files (pdf, images) open in a new tab where the user can Save As. ── */
     function downloadFile(url, name) {
-      showToast("⬇️ Downloading " + name + "…");
-      const sep = url.includes("?") ? "&" : "?";
-      const forceUrl = url + sep + "response-content-disposition=" +
-        encodeURIComponent('attachment; filename="' + name.replace(/"/g, '\\"') + '"');
-      const a = document.createElement("a");
-      a.href = forceUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      showToast("⬇️ Opening " + name + "…");
+      window.open(url, "_blank", "noopener,noreferrer");
     }
 
     /* ── toast ── */
