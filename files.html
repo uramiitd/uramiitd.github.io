@@ -282,7 +282,7 @@
             .filter(i => i.name !== ".keep")
             .map(async item => {
               const [url, meta] = await Promise.all([item.getDownloadURL(), item.getMetadata()]);
-              return { name: item.name, url, meta, ref: item };
+              return { name: item.name, url, meta, fullPath: item.fullPath };
             })
         );
         allItems = items;
@@ -296,11 +296,19 @@
       }
     }
 
+    let sortMode = "newest"; // newest | oldest | name | size
+
     function renderFiles(search) {
       const list     = document.getElementById("file-list");
-      const filtered = search
+      let filtered = search
         ? allItems.filter(i => i.name.toLowerCase().includes(search))
-        : allItems;
+        : [...allItems];
+
+      // sort
+      if (sortMode === "newest") filtered.sort((a,b) => new Date(b.meta.timeCreated) - new Date(a.meta.timeCreated));
+      else if (sortMode === "oldest") filtered.sort((a,b) => new Date(a.meta.timeCreated) - new Date(b.meta.timeCreated));
+      else if (sortMode === "name") filtered.sort((a,b) => a.name.localeCompare(b.name));
+      else if (sortMode === "size") filtered.sort((a,b) => b.meta.size - a.meta.size);
 
       document.getElementById("file-count").textContent =
         filtered.length + " file" + (filtered.length !== 1 ? "s" : "");
@@ -310,40 +318,47 @@
           <i class="ti ti-folder-open" style="font-size:2.5rem;opacity:.3"></i>
           <p>${search ? "No files match your search." : "No files yet. Upload the first one!"}</p>
         </div>`;
+        list.className = "";
         return;
       }
 
       if (viewMode === "grid") {
         list.className = "file-grid";
-        list.innerHTML = filtered.map(({ name, url, meta }) => {
+        list.innerHTML = filtered.map(({ name, url, meta, fullPath }) => {
           const by   = meta.customMetadata?.uploadedBy || "Unknown";
           const time = timeAgo(new Date(meta.timeCreated).getTime());
           const size = fmt(meta.size);
           const prev = isPreviewable(name);
+          const safeUrl  = encodeURI(url);
+          const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+          const safePath = fullPath.replace(/'/g, "\\'");
           return `
           <div class="file-card">
             <div class="file-card-icon" style="background:${getIconColor(name)}18">
               <i class="ti ${getIcon(name)}" style="color:${getIconColor(name)};font-size:2rem" aria-hidden="true"></i>
             </div>
             <div class="file-card-body">
-              <span class="file-card-name" title="${name}">${name}</span>
+              <span class="file-card-name" title="${safeName}">${name}</span>
               <span class="file-card-meta">${size} · ${by}</span>
               <span class="file-card-time">${time}</span>
             </div>
             <div class="file-card-actions">
-              ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${url}','${name}')"><i class="ti ti-eye"></i></button>` : ""}
-              <a class="btn-icon" href="${url}" download="${name}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
-              <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${meta.fullPath||currentFolder+'/'+name}','${name}')"><i class="ti ti-trash"></i></button>
+              ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
+              <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+              <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
             </div>
           </div>`;
         }).join("");
       } else {
         list.className = "file-list-view";
-        list.innerHTML = filtered.map(({ name, url, meta }) => {
+        list.innerHTML = filtered.map(({ name, url, meta, fullPath }) => {
           const by   = meta.customMetadata?.uploadedBy || "Unknown";
           const time = timeAgo(new Date(meta.timeCreated).getTime());
           const size = fmt(meta.size);
           const prev = isPreviewable(name);
+          const safeUrl  = encodeURI(url);
+          const safeName = name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+          const safePath = fullPath.replace(/'/g, "\\'");
           return `
           <div class="file-row">
             <i class="ti ${getIcon(name)}" style="color:${getIconColor(name)};font-size:1.3rem;flex-shrink:0" aria-hidden="true"></i>
@@ -352,9 +367,9 @@
               <span class="file-row-meta">${size} · ${by} · ${time}</span>
             </div>
             <div class="file-row-actions">
-              ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${url}','${name}')"><i class="ti ti-eye"></i></button>` : ""}
-              <a class="btn-icon" href="${url}" download="${name}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
-              <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${currentFolder+'/'+name}','${name}')"><i class="ti ti-trash"></i></button>
+              ${prev ? `<button class="btn-icon" title="Preview" onclick="previewFile('${safeUrl}','${safeName}')"><i class="ti ti-eye"></i></button>` : ""}
+              <a class="btn-icon" href="${safeUrl}" download="${safeName}" target="_blank" title="Download"><i class="ti ti-download"></i></a>
+              <button class="btn-icon btn-del" title="Delete" onclick="deleteFile('${safePath}','${safeName}')"><i class="ti ti-trash"></i></button>
             </div>
           </div>`;
         }).join("");
@@ -362,7 +377,7 @@
     }
 
     function onSearch() { renderFiles(document.getElementById("search-input").value.toLowerCase()); }
-
+    function onSort(val) { sortMode = val; renderFiles(document.getElementById("search-input").value.toLowerCase()); }
     function toggleView(mode) {
       viewMode = mode;
       document.getElementById("btn-grid").classList.toggle("active", mode === "grid");
@@ -721,6 +736,21 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(13,92,107,0.1);
     }
+
+    .sort-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 28px 7px 12px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.82rem;
+      color: var(--ink2);
+      cursor: pointer;
+      outline: none;
+      appearance: auto;
+      transition: border-color 0.2s;
+    }
+    .sort-select:focus { border-color: var(--accent); }
 
     .view-toggle { display: flex; gap: 2px; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; border: 1px solid var(--border); }
     .btn-view {
@@ -1302,6 +1332,12 @@
         <input class="search-input" id="search-input" type="search"
                placeholder="Search files…" oninput="onSearch()" aria-label="Search files"/>
       </div>
+      <select class="sort-select" onchange="onSort(this.value)" aria-label="Sort files">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="name">Name A–Z</option>
+        <option value="size">Largest first</option>
+      </select>
       <div class="view-toggle">
         <button class="btn-view active" id="btn-grid" onclick="toggleView('grid')" title="Grid view" aria-label="Grid view">
           <i class="ti ti-layout-grid"></i>
