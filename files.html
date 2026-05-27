@@ -99,7 +99,7 @@
 
     /* ── state ── */
     let currentPath = "general";
-    let viewMode = "grid"; // grid | list
+    let viewMode = "grid"; 
     let allItems = [];
 
     /* ── sidebar & paths ── */
@@ -123,6 +123,8 @@
 
     function addSidebarItem(name) {
       const nav = document.getElementById("folder-nav");
+      const isDefault = defaultFolders.includes(name);
+      
       const labels = {
         general:"General", data:"Data & Datasets", reports:"Reports",
         presentations:"Presentations", papers:"Papers & Publications"
@@ -131,19 +133,25 @@
         general:"ti-folder", data:"ti-database", reports:"ti-file-description",
         presentations:"ti-presentation", papers:"ti-books"
       };
+      
       const div = document.createElement("div");
       div.className = "nav-item";
       div.id = "sidebar-" + name;
       div.onclick = () => setPath(name);
-      div.innerHTML = `<i class="ti ${icons[name]||'ti-folder'}" aria-hidden="true"></i>
-        <span>${labels[name] || name}</span>`;
+      
+      div.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden;">
+          <i class="ti ${icons[name]||'ti-folder'}" aria-hidden="true"></i>
+          <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${labels[name] || name}</span>
+        </div>
+        ${!isDefault ? `<i class="ti ti-trash sidebar-del-icon" title="Delete Root Folder" onclick="event.stopPropagation(); deleteRootFolder('${name}')"></i>` : ""}
+      `;
       nav.appendChild(div);
     }
 
     function setPath(path) {
       currentPath = path;
       
-      // Update sidebar active state (only base root)
       const rootFolder = path.split('/')[0];
       document.querySelectorAll(".nav-item").forEach(el => {
         el.classList.toggle("active", el.id === "sidebar-" + rootFolder);
@@ -212,7 +220,6 @@
       try {
         const res = await storage.ref(currentPath).listAll();
         
-        // Folders (Prefixes)
         const folders = res.prefixes.map(p => ({
           isFolder: true,
           name: p.name,
@@ -220,7 +227,6 @@
           meta: { size: 0, timeCreated: 0 } 
         }));
 
-        // Files (Items)
         const files = await Promise.all(
           res.items
             .filter(i => i.name !== ".keep")
@@ -249,7 +255,6 @@
         ? allItems.filter(i => i.name.toLowerCase().includes(search))
         : [...allItems];
 
-      // Sort: Folders first, then by selected mode
       filtered.sort((a,b) => {
         if (a.isFolder && !b.isFolder) return -1;
         if (!a.isFolder && b.isFolder) return 1;
@@ -402,6 +407,21 @@
         await deleteFolderRecursive(storage.ref(path));
         showToast(`🗑️ Folder ${name} deleted.`);
         loadFiles();
+      } catch(e) {
+        showToast("Failed to delete folder: " + e.message, "err");
+      }
+    }
+
+    async function deleteRootFolder(name) {
+      if (!confirm(`WARNING: Are you sure you want to completely delete the root folder "${name}" and ALL files inside it? This cannot be undone.`)) return;
+      try {
+        await deleteFolderRecursive(storage.ref(name));
+        showToast(`🗑️ Root folder ${name} deleted.`);
+        
+        if (currentPath.startsWith(name)) {
+          setPath("general");
+        }
+        loadSidebarFolders();
       } catch(e) {
         showToast("Failed to delete folder: " + e.message, "err");
       }
@@ -604,7 +624,7 @@
       flex-direction: column;
       font-size: 14px;
       line-height: 1.6;
-      overflow: hidden; /* App handles internal scrolling */
+      overflow: hidden; 
     }
 
     #header-placeholder {
@@ -750,6 +770,18 @@
     .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
     .nav-item .ti { font-size: 16px; opacity: 0.75; flex-shrink: 0; }
     .nav-item.active .ti { opacity: 1; }
+
+    /* New Trash icon style for the sidebar */
+    .sidebar-del-icon {
+      font-size: 16px;
+      opacity: 0;
+      color: var(--ink3);
+      transition: color 0.15s, opacity 0.15s;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .nav-item:hover .sidebar-del-icon { opacity: 1; }
+    .sidebar-del-icon:hover { color: var(--danger); background: var(--danger-light); }
 
     .sidebar-bottom {
       margin-top: auto;
