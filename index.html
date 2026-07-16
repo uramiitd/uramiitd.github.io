@@ -135,6 +135,22 @@
       padding: 28px;
     }
 
+
+    .hero-photo {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      border-radius: 28px;
+      overflow: hidden;
+    }
+    
+    .hero-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    
     .image-tag {
       align-self: flex-start;
       padding: 8px 12px;
@@ -524,12 +540,9 @@
     <main>
       <section class="hero" id="home">
         <div class="hero-media reveal">
-          <div class="image-placeholder" aria-label="Image placeholder">
-            <div>
-              <h2 class="image-title">image </h2>
-              <p class="image-note"></p>
-            </div>
-          </div>
+        <div class="hero-photo">
+          <img src="images/index_photo.png">
+        </div>
         </div>
 
         <div class="hero-copy reveal">
