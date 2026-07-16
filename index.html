@@ -116,23 +116,6 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    .image-placeholder {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      min-height: 500px;
-      border-radius: 28px;
-      border: 1.5px dashed rgba(255, 255, 255, 0.5);
-      background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.16), transparent 24%);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 28px;
-    }
-
     .hero-photo {
       position: absolute;
       inset: 0;
@@ -146,35 +129,6 @@
       height: 100%;
       object-fit: cover;
       display: block;
-    }
-    
-    .image-tag {
-      align-self: flex-start;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      color: #f7f5f0;
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 800;
-    }
-
-    .image-title {
-      max-width: 220px;
-      color: #ffffff;
-      font-family: "Playfair Display", serif;
-      font-size: clamp(1.8rem, 3vw, 2.6rem);
-      line-height: 1.05;
-      margin: 0;
-    }
-
-    .image-note {
-      max-width: 260px;
-      margin: 0;
-      color: rgba(255, 255, 255, 0.84);
-      line-height: 1.6;
-      font-size: 0.96rem;
     }
 
     .hero-copy {
@@ -375,8 +329,9 @@
       padding-bottom: 6px;
     }
 
-    /* --- NEW LEADER CARD STYLES (Match Photo) --- */
+    /* --- LEADER CARD STYLES --- */
     .leader-profile-card {
+      position: relative; /* Needed for the absolute badge */
       border-radius: var(--radius-lg);
       padding: 36px;
       display: flex;
@@ -385,8 +340,20 @@
       align-items: flex-start;
     }
 
+    /* Group Leader top right badge */
+    .leader-badge {
+      position: absolute;
+      top: 36px;
+      right: 36px;
+      color: #000000;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
     .leader-photo-wrap {
-      flex: 0 0 240px; /* Forces a smaller, fixed width */
+      flex: 0 0 240px; 
     }
 
     .leader-photo-wrap img {
@@ -401,18 +368,20 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      padding-top: 12px; /* Slight offset to balance with the top right text */
     }
 
+    /* Forced black color for all text inside the leader profile */
     .leader-info-wrap .leader-name {
       margin: 0 0 14px;
       font-family: "Playfair Display", serif;
       font-size: clamp(2rem, 3vw, 2.6rem);
-      color: var(--ink);
+      color: #000000; 
     }
 
     .leader-info-wrap p {
       margin: 0 0 18px;
-      color: var(--muted);
+      color: #000000; 
       line-height: 1.7;
       font-size: 1rem;
     }
@@ -431,7 +400,7 @@
       height: 44px;
       border-radius: 50%;
       background: rgba(14, 100, 109, 0.06);
-      color: var(--accent-deep);
+      color: #000000; /* Made icons black as well */
       border: 1px solid rgba(14, 100, 109, 0.15);
       transition: background 0.2s ease, transform 0.2s ease;
     }
@@ -520,13 +489,20 @@
     }
 
     @media (max-width: 768px) {
-      /* Stack the leader card on mobile */
       .leader-profile-card {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        padding: 28px;
+        padding: 48px 28px 28px; /* Extra top padding for the badge */
       }
+      
+      .leader-badge {
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 20px;
+      }
+
       .leader-photo-wrap {
         flex: none;
         width: 200px;
@@ -608,6 +584,8 @@
       </section>
 
       <section class="leader-profile-card reveal" id="leadership">
+        <span class="leader-badge">Group Leader</span>
+        
         <div class="leader-photo-wrap">
           <img src="images/harsha_kota.jpeg" alt="Prof. Sri Harsha Kota">
         </div>
@@ -616,7 +594,7 @@
           <p>Sri Harsha Kota is a Professor in the Department of Civil Engineering at IIT Delhi. Earlier, from August 2014 to May 2018, he served as Assistant Professor at the Department of Civil Engineering at IIT Delhi.</p>
           <p>He has more than ten years of research experience in air-quality modeling and monitoring. His work focuses on regional and urban air-quality modeling, emission factors, air purification, air-quality management, air pollution and health, indoor air pollution, and source apportionment. He collaborates actively with scientists in India, the US, Europe, and China.</p>
           
-
+     
         </div>
       </section>
       <section class="team-card reveal" id="team">
