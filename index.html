@@ -61,8 +61,6 @@
       padding: 24px 0 64px;
     }
 
-
-
     .hero {
       display: grid;
       grid-template-columns: minmax(320px, 0.95fr) minmax(340px, 1.15fr);
@@ -74,7 +72,7 @@
     .hero-media,
     .hero-copy,
     .content-card,
-    .leader-card,
+    .leader-profile-card,
     .team-card {
       background: var(--surface-strong);
       border: 1px solid rgba(255, 255, 255, 0.85);
@@ -134,7 +132,6 @@
       justify-content: space-between;
       padding: 28px;
     }
-
 
     .hero-photo {
       position: absolute;
@@ -294,7 +291,6 @@
     }
 
     .content-card,
-    .leader-card,
     .team-card {
       border-radius: var(--radius-lg);
       padding: 30px;
@@ -317,7 +313,6 @@
     }
 
     .content-card p,
-    .leader-text p,
     .team-card p {
       margin: 0 0 16px;
       color: var(--muted);
@@ -380,64 +375,78 @@
       padding-bottom: 6px;
     }
 
-    .profile-section {
-      display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 28px;
-      margin-bottom: 28px;
-    }
-
-    .leader-visual {
-      position: relative;
-      min-height: 260px;
-      border-radius: 22px;
-      overflow: hidden;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent),
-        linear-gradient(140deg, #1c5660 0%, #0f2228 100%);
-    }
-
-    .leader-visual .image-wrapper {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      max-width: none;
-      margin: 0;
-    }
-
-    .leader-visual .responsive-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: top;
-      border-radius: 0;
-      display: block;
-    }
-
-    .leader-header {
+    /* --- NEW LEADER CARD STYLES (Match Photo) --- */
+    .leader-profile-card {
+      border-radius: var(--radius-lg);
+      padding: 36px;
       display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: baseline;
-      margin-bottom: 18px;
+      gap: 36px;
+      margin-bottom: 28px;
+      align-items: flex-start;
     }
 
-    .leader-name {
-      margin: 0;
+    .leader-photo-wrap {
+      flex: 0 0 240px; /* Forces a smaller, fixed width */
+    }
+
+    .leader-photo-wrap img {
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      display: block;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .leader-info-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .leader-info-wrap .leader-name {
+      margin: 0 0 14px;
       font-family: "Playfair Display", serif;
-      font-size: clamp(1.9rem, 3vw, 2.5rem);
+      font-size: clamp(2rem, 3vw, 2.6rem);
+      color: var(--ink);
     }
 
-    .leader-role {
-      margin: 0;
-      color: var(--accent);
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.82rem;
+    .leader-info-wrap p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1rem;
     }
+
+    .social-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .social-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(14, 100, 109, 0.06);
+      color: var(--accent-deep);
+      border: 1px solid rgba(14, 100, 109, 0.15);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .social-btn:hover {
+      background: rgba(14, 100, 109, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .social-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+    /* ------------------------------------------ */
 
     .team-card {
       display: grid;
@@ -472,13 +481,6 @@
       font-weight: 800;
     }
 
-    .footer {
-      padding: 20px 0 8px;
-      color: var(--muted);
-      font-size: 0.95rem;
-      text-align: center;
-    }
-
     .reveal {
       opacity: 0;
       transform: translateY(24px);
@@ -493,17 +495,6 @@
       animation-delay: 0.24s;
     }
 
-    .image-overlay {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      z-index: 2;
-      padding: 6px;
-      border-radius: 999px;
-      background: rgba(10, 20, 24, 0.55);
-      backdrop-filter: blur(4px);
-    }
-
     @keyframes reveal {
       to {
         opacity: 1;
@@ -514,22 +505,34 @@
     @media (max-width: 1024px) {
       .hero,
       .content-grid,
-      .profile-section,
       .team-card {
         grid-template-columns: 1fr;
       }
-
       .hero-points {
         grid-template-columns: 1fr;
       }
-
       .team-card {
         gap: 16px;
       }
-    }
-
       .interest-list {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      /* Stack the leader card on mobile */
+      .leader-profile-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 28px;
+      }
+      .leader-photo-wrap {
+        flex: none;
+        width: 200px;
+      }
+      .social-links {
+        justify-content: center;
       }
     }
   </style>
@@ -604,40 +607,18 @@
         </aside>
       </section>
 
-      <section class="profile-section">
-        <div class="leader-visual reveal">
-          <div class="image-wrapper">
-            <img src="images/harsha_kota.jpeg" alt="Prof. Sri Harsha Kota" class="responsive-img">
-          </div>
-          <div class="image-overlay">
-            <span class="image-tag">Prof. Sri Harsha Kota</span>
-          </div>
+      <section class="leader-profile-card reveal" id="leadership">
+        <div class="leader-photo-wrap">
+          <img src="images/harsha_kota.jpeg" alt="Prof. Sri Harsha Kota">
         </div>
+        <div class="leader-info-wrap">
+          <h2 class="leader-name">Prof. Sri Harsha Kota</h2>
+          <p>Sri Harsha Kota is a Professor in the Department of Civil Engineering at IIT Delhi. Earlier, from August 2014 to May 2018, he served as Assistant Professor at the Department of Civil Engineering at IIT Delhi.</p>
+          <p>He has more than ten years of research experience in air-quality modeling and monitoring. His work focuses on regional and urban air-quality modeling, emission factors, air purification, air-quality management, air pollution and health, indoor air pollution, and source apportionment. He collaborates actively with scientists in India, the US, Europe, and China.</p>
+          
 
-        <article class="leader-card reveal">
-          <p class="section-label">Leadership</p>
-          <div class="leader-header">
-            <h2 class="leader-name">Prof. Sri Harsha Kota</h2>
-            <p class="leader-role">Group Leader</p>
-          </div>
-          <div class="leader-text">
-            <p>
-              Prof. Sri Harsha Kota is currently a Professor in the Department of Civil Engineering and Chair Professor at the Center for Excellence in Research in Clean Air (CERCA) at Indian Institute of Technology Delhi.
-              Earlier, he was working as an Assistant Professor in the Department of Civil Engineering at Indian Institute of Technology Guwahati(IITG).
-              He is a recipient of Indian National Academy of Engineering (INAE)  Young Engineer Award for the year 2021. He has more than fifteen years of research experience in the field of air quality management.
-              </p>
-            <p>
-              He received his Master’s and PhD degrees in Civil Engineering with emphasis on air quality from Texas A&M University, USA.
-            </p>
-            <p>
-              His research interests include regional/urban air quality modeling, estimating emission factors from different sources, developing air purifiers, air quality management, associating air pollution and human health, indoor air pollution and source apportionment of air pollutants.
-              He is actively engaged in research collaborations with scientists in India, US, Europe and China.
-              He has authored more than forty journal publications and is currently involved in multiple funded research projects. 
-            </p>
-          </div>
-        </article>
+        </div>
       </section>
-
       <section class="team-card reveal" id="team">
         <div>
           <p class="section-label">Team</p>
