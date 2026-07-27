@@ -169,38 +169,30 @@
       padding: 28px;
     }
 
-    .image-placeholder {
-      position: relative;
-      z-index: 1;
+    /* ---- NEW IMAGE BANNER ---- */
+    .hero-banner {
       width: 100%;
-      min-height: 500px;
-      border-radius: 28px;
-      overflow: hidden; /* Ensures the image doesn't break out of the rounded corners */
+      height: clamp(300px, 45vw, 600px); /* Adjusts height dynamically based on screen size */
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      margin-bottom: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: var(--shadow);
     }
-    
-    /* This styles the new image */
-    .group-photo {
-      position: absolute;
-      top: 0;
-      left: 0;
+
+    .banner-image {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* MAGIC PROPERTY: Fits the image perfectly without stretching */
-      object-position: center; /* Keeps the middle of the photo in view */
-      z-index: 0;
+      object-fit: cover; /* Ensures the image fills the space without stretching */
+      object-position: center; /* Keeps the focus on the center of the photo */
+      display: block;
     }
-    
-    /* This styles the text overlay on top of the image */
-    .placeholder-content {
-      position: relative;
-      z-index: 1; /* Keeps text above the image */
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 500px;
-      padding: 28px;
-      /* Adds a subtle dark shadow over the image so the white text is always readable */
-      background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%);
+
+    @media (max-width: 760px) {
+      .hero-banner {
+        border-radius: var(--radius-lg);
+        margin-bottom: 32px;
+      }
     }
 
     .image-tag {
@@ -683,44 +675,8 @@
   <div class="page-shell">
   
     <main>
-      <section class="hero">
-        <div class="hero-media reveal">
-        <!--  <div class="image-placeholder" aria-label="Members page image placeholder">-->
-        <!--    <span class="image-tag">Image</span>-->
-        <!--    <div>-->
-        <!--      <h2 class="image-title">Team photograph </h2>-->
-        <!--      <p class="image-note">group image</p>-->
-        <!--    </div>-->
-        <!--  </div>-->
-        <!--</div>-->
-        
-        <div class="image-placeholder" aria-label="Members page image placeholder">
-  <!-- 1. Add your image tag here -->
-  <img src="images/group_photo.jpeg"  class="group-photo">
-  </div>
-</div>
-
-        <div class="hero-copy reveal">
-          <p class="eyebrow">Members</p>
-          <h1>Meet the team behind URAM-IITD.</h1>
-          <p>
-            The Urban and Regional Air Quality Management group brings together faculty, research scholars, and alumni working across air-quality modeling, environmental systems, health studies, and policy-facing research.
-          </p>
-          <ul class="hero-points">
-            <li>
-              <span class="point-label">Faculty</span>
-              <span class="point-text">Senior academic leadership across air quality and environmental engineering</span>
-            </li>
-            <li>
-              <span class="point-label">Scholars</span>
-              <span class="point-text">Research spanning modeling, health impact, climate policy, and machine learning</span>
-            </li>
-            <li>
-              <span class="point-label">Alumni</span>
-              <span class="point-text">Graduates now contributing to research and academic institutions worldwide</span>
-            </li>
-          </ul>
-        </div>
+      <section class="hero-banner reveal">
+        <img src="images/group_photo.jpeg" alt="URAM-IITD Team Photograph" class="banner-image">
       </section>
 
       <section class="section-shell reveal">
